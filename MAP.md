@@ -493,3 +493,7 @@ User said "yes" to applying the amendment. Backed up first (`.../scratchpad/doct
 ## Addendum (2026-09-20, later) — Peer session's reply on commits
 
 - The other session ("Chi Go with your recommendations") declined to commit its chi-platform work on this session's user's word: its own user's rule is commit only on their explicit ask, and it is asking them. It asked this session to leave its chi-platform files unstaged and NOT to commit its working files in `~/Projects/chi` (docs, MAP.md, ...) without asking its user first. Already done before the request: `d89641f` (its doctrine edits) was committed by this session at this session's user's "commit all" and pushed to `sysgate/chi` at "push chi". It is fixing the stale status lines in `proposed-evidence-lifecycle.md` and `real-store-plan.md` itself (expect new uncommitted edits in `chi/docs/ccgf/`). Rule going forward: do not stage or commit files in either repo that this session did not write, without asking the user.
+
+## Addendum (2026-09-20, later) — pushed `9715b5d`
+
+- Pushed `f4ecb3a..9715b5d` (1 commit, MAP.md log) to `sysgate/chi` (PRIVATE); remote head == local HEAD. The other session's uncommitted edits in `docs/ccgf/` were not touched. This entry is again an uncommitted MAP.md change.
