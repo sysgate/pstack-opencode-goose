@@ -1,0 +1,5 @@
+# Goose bootstrap instructions
+
+Before doing any work in this project, read `AGENTS.md` in full and follow it as the canonical project instructions.
+
+If the target file is under a descendant directory, also look for a nearer `AGENTS.md` and apply its more specific instructions. Treat this `.goosehints` file only as a loader; do not duplicate governance policy here.

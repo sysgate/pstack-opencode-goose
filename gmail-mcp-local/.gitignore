@@ -1,0 +1,6 @@
+node_modules/
+*.log
+.DS_Store
+token.json
+credentials.json
+gcp-oauth.keys.json

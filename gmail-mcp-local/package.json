@@ -1,0 +1,26 @@
+{
+  "name": "chi-gmail-mcp-local",
+  "version": "1.1.0",
+  "private": true,
+  "description": "Governed local Gmail MCP server with safe bulk-to-Trash support for Goose",
+  "type": "module",
+  "bin": {
+    "chi-gmail-mcp": "./src/index.js"
+  },
+  "scripts": {
+    "start": "node ./src/index.js",
+    "auth": "node ./src/index.js auth",
+    "archive:attachments": "node ./scripts/archive-attachments.js",
+    "smoke:live": "node ./scripts/smoke-live.js",
+    "test": "node --test"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "1.29.0",
+    "googleapis": "173.0.0",
+    "open": "9.1.0",
+    "zod": "3.25.76"
+  }
+}

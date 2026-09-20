@@ -1,0 +1,27 @@
+{
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "^(Bash|Write|Edit|NotebookEdit)$|^mcp__",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "/Library/Frameworks/Python.framework/Versions/3.12/bin/python3 /Users/robertlai/Projects/chi/jev-gate/gate.py || printf '%s' '{\"hookSpecificOutput\":{\"hookEventName\":\"PreToolUse\",\"permissionDecision\":\"ask\",\"permissionDecisionReason\":\"Jev gate failed to run; confirm manually.\"}}'",
+            "timeout": 5
+          }
+        ]
+      }
+    ],
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "umask 077\nPY=/Library/Frameworks/Python.framework/Versions/3.12/bin/python3\nGATE=/Users/robertlai/Projects/chi/jev-gate/gate.py\nH=\"${JEV_GATE_HOME:-$HOME}\"\nD=\"$H/.local/state/jev-gate\"\nC=\"$H/.config/jev-gate/config.json\"\nIN=$(cat 2>/dev/null)\nSID=$(printf '%s' \"$IN\" | sed -n 's/.*\"session_id\"[ ]*:[ ]*\"\\([^\"]*\\)\".*/\\1/p' | head -n 1 | tr -cd 'A-Za-z0-9_.-')\nSRC=$(printf '%s' \"$IN\" | sed -n 's/.*\"source\"[ ]*:[ ]*\"\\([^\"]*\\)\".*/\\1/p' | head -n 1 | tr -cd 'A-Za-z0-9_.-')\nBAD=\"\"\n[ -x \"$PY\" ] || BAD=\"$BAD interpreter-missing\"\n[ -f \"$GATE\" ] || BAD=\"$BAD script-missing\"\nif [ -x \"$PY\" ]; then \"$PY\" -c 'import sys; sys.exit(0 if sys.version_info >= (3, 9) else 1)' >/dev/null 2>&1 || BAD=\"$BAD interpreter-broken\"; fi\n[ -f \"$C\" ] || BAD=\"$BAD config-missing\"\nif [ -z \"$TYPESAFE_API_KEY\" ]; then\n  if [ -n \"$JEV_GATE_NO_KEYCHAIN\" ] || ! security find-generic-password -s typesafe >/dev/null 2>&1; then BAD=\"$BAD key-missing\"; fi\nfi\nmkdir -p \"$D\" 2>/dev/null\nOK=true\n[ -z \"$BAD\" ] || OK=false\nprintf '{\"ts\":\"%s\",\"session\":\"%s\",\"source\":\"%s\",\"ok\":%s,\"problems\":\"%s\"}\\n' \"$(date -u +%Y-%m-%dT%H:%M:%SZ)\" \"$SID\" \"$SRC\" \"$OK\" \"${BAD# }\" >> \"$D/heartbeat.jsonl\" 2>/dev/null\n[ -z \"$BAD\" ] || printf '{\"systemMessage\":\"Jev gate self-check failed (%s). The gate may not be protecting this session; run doctor.py.\"}' \"${BAD# }\"\nexit 0\n",
+            "timeout": 5
+          }
+        ]
+      }
+    ]
+  }
+}

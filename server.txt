@@ -1,0 +1,10 @@
+/Users/robertlai/venvs/vllm-mlx/bin/python -m vllm_mlx.server \
+  --model mlx-community/Qwen3-14B-4bit \
+  --host 127.0.0.1 \
+  --port 8000 \
+  --max-tokens 512 \
+  --max-request-tokens 8192 \
+  --default-temperature 0 \
+  --default-top-p 0.9 \
+  --default-chat-template-kwargs '{"enable_thinking": false}'
+
