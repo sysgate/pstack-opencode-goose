@@ -1,6 +1,6 @@
 # Proposed: an evidence lifecycle (decision D4; closes F8 and F19)
 
-**Status (2026-09-20): APPLIED to the doctrine (`ARCHITECTURE.md` §9.1 and §9.2, the four `AGENTS.md` copies, the glossary), with decisions E1 to E3 as recorded at the end. The code (slice 3) is in progress; the text below is otherwise kept as drafted.**
+**Status (2026-09-20): APPLIED to the doctrine (`ARCHITECTURE.md` §9.1 and §9.2, the four `AGENTS.md` copies, the glossary), with decisions E1 to E3 as recorded at the end. The code (slice 3) is built and verified on the branch hypergraph-store (uncommitted); the text below is otherwise kept as drafted.**
 
 ## Why
 

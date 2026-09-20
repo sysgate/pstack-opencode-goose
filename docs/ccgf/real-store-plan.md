@@ -1,6 +1,6 @@
 # Plan: the real CHI hypergraph store in chi-platform
 
-**Status (2026-09-20): PLAN, and decisions D1 to D4 are made (see the end). No code has been written, nothing in `chi-platform/` has been changed except one appended line in `project-map.md`, and the live ledger was only ever opened read-only. Phase 0 is COMPLETE and Phase 1 slices 1 and 2 (migration + receipt chain; semantic objects, DSN and admission) are BUILT (2026-09-20, see the end); slices 3 onward have not started.**
+**Status (2026-09-20): PLAN, and decisions D1 to D4 are made (see the end). No code has been written, nothing in `chi-platform/` has been changed except one appended line in `project-map.md`, and the live ledger was only ever opened read-only. Phase 0 is COMPLETE and Phase 1 (schema, store library and tests) is COMPLETE as of 2026-09-20: migration + receipt chain, semantic objects and DSN, the migration guard and evidence, hyperedges, bindings, allowances, the four boundaries, admission, review, the cascades, projection and the integrity check (see the end). Phase 3 (the glossary loader, verifier and query tool) is BUILT and proven on a scratch copy of the real ledger, but has NOT been run on the live ledger. Phase 2 (the chain-head anchor, gateway integration, a startup health check) has not started.**
 
 ## What already exists (read on 2026-09-20)
 
@@ -129,4 +129,133 @@ Built on `hypergraph-store` (uncommitted): migration 2 (`semantic_objects`), `ob
 ## D4 refined (2026-09-20)
 
 D4 ("use `candidate_evidence` as the evidence lifecycle") is specified in `proposed-evidence-lifecycle.md`, with decisions E1 (tier 4 is never bindable), E2 (refusal-only triggers on the gateway table, a narrow exception to additive-only) and E3 (only a human verifies tier 3). The doctrine text was applied on 2026-09-20; slice 3 (evidence) builds against it.
+
+## Phase 1, slice 3: the migration guard and evidence (2026-09-20)
+
+Built on `hypergraph-store` (uncommitted): a stricter guard in `migrations.py`, migration 3 (`evidence_records` and the refusal-only triggers on `candidate_evidence`), `evidence.py`, `tests/test_hypergraph_evidence.py`. Suite: **252 passed** (87 existing, 165 hypergraph).
+
+**The guard first, as recommended.** Every trigger in every migration must now be `BEFORE`, contain nothing but `RAISE(ABORT, ...)`, and hold no comments. The one exception to "never touch a gateway table" is such a trigger on `candidate_evidence`, on `UPDATE` or `DELETE` only (never `INSERT`, so the gateway can never be blocked from inserting), named `hypergraph_*` so it can be identified and dropped. A migration that needs a gateway table refuses atomically if it is missing.
+
+**Evidence.** `candidate_evidence` is the lifecycle (E-decisions applied): only a human verifies tier 3; generative evidence is never admitted; the stored hash is re-verified against the body and sealed in the admission receipt; denial and revocation need their receipts; the body, hash, kind, source and provenance of a candidate never change; candidates are never deleted. All of it is enforced by triggers in the database, not only in Python. `evidence_records` cannot even hold tier 4 (a CHECK), so a generative candidate cannot become a binding target.
+
+**Verification.** 35 sabotage probes in three rounds: 11 on the guard (one real gap found and fixed), 24 on the evidence rules (one gap found and fixed). Each probe disables exactly one rule and each is caught by the test for that rule. Trial on a scratch copy of the verified backup: migrations 1 to 3 applied; the five gateway tables identical in definition and content; **all 1,071 real candidate hashes verify against their bodies**; a real tool output was admitted by a human, and a real model response, non-human verification, a body edit, a delete and a resurrection were all refused; the gateway's own insert path still works; only that one candidate's lifecycle columns changed; the live ledger was untouched.
+
+**What building it taught us**
+- **A real hole in my own first guard.** A quote mark inside a comment makes a scanner that strips string literals mistake code for a string, so a disguised `UPDATE` slipped through and SQLite really executed it. Found by a sabotage probe that was *not* caught; fixed by banning comments in triggers, with the attack itself as a test and a second test proving the attack is real.
+- **Two rounds of my probes were crude.** A probe that breaks the whole migration proves nothing about the rule under test, and my `SELECT 1` no-ops were rejected by the new guard. Redone with a no-op the guard accepts.
+- **A rule that another trigger also enforces is untested.** The candidate-skip transition was protected twice, so the transition table alone was never exercised until a test supplied the receipt that satisfied the other trigger. Some paths (`ADMITTED -> DENIED`) are refused twice by structure and cannot be isolated at all.
+- **SQLite does not define which of several refusing triggers fires first**, so tests assert that an update is refused and accept either message.
+
+**Limits to carry forward**
+- **The database cannot stop someone inserting an `ADMITTED` candidate row directly**, because triggers on `INSERT` for a gateway table are banned (they could block the gateway). The integrity check (slice 8) must detect an admitted candidate with no evidence record and receipt.
+- **The revocation cascade to bindings is not built yet**; it arrives with bindings (slice 4).
+- **A doctrine wording mismatch:** the doctrine's timestamps are "epoch numbers", but the gateway and this store use ISO-8601 text.
+
+## Phase 1, slice 4a: hyperedge candidates and members (2026-09-20)
+
+Slices 1 to 3 are committed on `hypergraph-store` in five scoped commits (`6035f51` to `7781f6e`, not pushed). Slice 4a is built and **not committed**: migration 4 (`hyperedges`, `hyperedge_members`, 22 triggers), `relations.py`, `hyperedges.py` (propose, get, members_of, move, reopen), `tests/test_hypergraph_hyperedges.py` (193 tests). Suite: **445 passed**.
+
+**Why 4a stops short of admission.** The 據界 boundary needs evidence bindings, and admitting a hyperedge with a stand-in for it would be exactly the optimistic default the doctrine forbids. So 4a builds what can be built and verified honestly on its own: the candidate, its members, the signatures and the state machine, all enforced by the database. Bindings, allowances, voiding, the four boundaries, admission and the cascades are **slice 4b**.
+
+**What the database now enforces for hyperedges**
+- Born a `CANDIDATE` with no receipt; never deleted; identity and source never change; the admission receipt is set once and only with the move to `ADMITTED`.
+- The frozen state machine, and a **relation signature** checked when the candidate leaves `CANDIDATE` (every member role allowed for the type, every required role present). Python and the database are driven with every relation type and role combination and must agree.
+- Members are added only while the hyperedge is a `CANDIDATE`, only if they are admitted semantic objects, and never change or go away.
+- **Every move needs its receipt: of the right kind, the latest on the hyperedge, and naming the move** (`from` and `to` in its basis).
+
+**What building it taught us**
+- **A stale receipt could have authorised a new move.** My first rule was "the latest receipt on the hyperedge is of the right kind". The tests showed that after a move the receipt that justified it is still the latest, so `CHALLENGED -> UNDER_REVIEW` passed on the same `REVISION_OPEN` that justified the challenge, and `REVISED -> CLOSED` on the receipt for `REVISED`. Fixed by making each move receipt name its move, checked in the database. Returning from review to `PENDING` now needs its own receipt (`REVISION_CLOSE`, `PEND`); the doctrine did not say it needed one.
+- **A NULL slips through a `NOT IN`.** A hyperedge with no receipt gave a NULL comparison, and `RAISE ... WHERE NULL` does not fire. The rule now coalesces, and a test covers a hyperedge with no receipt at all.
+- **45 sabotage probes, one gap found.** Each disables one rule. The closed relation-type list was not caught until a test drove a raw insert of an unknown type. All 45 are now caught (the baseline passes).
+- **Two of my own tests had a false premise** (two triggers refuse the same move and SQLite does not define which fires first; a `BEFORE INSERT` trigger fires before a `CHECK`). Fixed by supplying the receipt that satisfies the other rule so each test isolates one rule, and by dropping the one case that cannot be isolated.
+
+**Trial on a scratch copy of the verified backup:** migrations 1 to 4 applied; the five gateway tables identical in rows, content and schema; the only change on them is the seven `hypergraph_` triggers from slice 3; a hyperedge over two real-shaped objects was created; admission without a receipt, deletion, a source edit, a late member and a planted `ADMITTED` row were all refused by the database; all 1,071 candidates still `CANDIDATE`; chain and `quick_check` ok; second run applies nothing; the live ledger was untouched (454,098,944 bytes).
+
+**Open for 4b (decisions I will take, and flag)**
+- A `CAUSAL` hyperedge with two `SUBJECT` members: the doctrine does not say. The prototype's cycle check assumed one subject and one object. Recommend the 徑界 check treat each subject as a cause of each object.
+- Admission by boundaries must write the `from`/`to` in each move receipt, and the objects module still needs its cascade hooks (revoke, narrowing) now that hyperedges exist.
+
+## Phase 1, slice 4b: bindings, allowances, boundaries, admission, review, cascades (2026-09-20)
+
+Slices 1 to 4a are committed (`6035f51` to `a0e178d`). **Slice 4b is built and NOT committed**: migrations 5 (`bindings`: `allowances`, `hyperedge_evidence`) and 6 (`boundaries`), `bindings.py`, `revision.py`, `boundaries.py`, `admission.py`, cascades in `objects.py` and `evidence.py`, `tests/hg_helpers.py`, `tests/test_hypergraph_bindings.py` (98) and `tests/test_hypergraph_admission.py` (62). Suite: **604 passed** (87 gateway + 517 hypergraph).
+
+**What the database now enforces (in addition to slices 1 to 4a)**
+- A binding is born un-voided, only on a PENDING or ADMITTED hyperedge, only for **admitted, unrevoked** evidence (so generative evidence can never be bound: decision E1 is structural), with its own `EVIDENCE_ADMIT` receipt as the latest on the hyperedge, naming the evidence and polarity.
+- A bounded ambiguous member needs an allowance for **this** binding, covering every bounded member, granted by a human who is not the binding's proposer. An allowance is where nothing is bounded is refused.
+- A binding is never deleted and never restored; voiding is once, with its own `REVISION_CLOSE` receipt naming the evidence, and dismissing a contradiction needs a human receipt.
+- **Admission and reaffirmation clear the boundaries in the database**: every member admitted, supporting evidence that still counts, no contradiction that still counts, a confidence bound. A confidence bound is itself a receipt, and the envelope is frozen once a hyperedge leaves PENDING. Only 徑界 (no causal loop) stays in Python, because a trigger cannot walk a graph.
+
+**Cascades (修界)**
+- Revoking evidence voids every binding that uses it; a hyperedge left without support becomes CHALLENGED if it was ADMITTED, and records UNSUPPORTED if it was PENDING. This makes the allowance rule "lapses when the evidence is revoked" (F8) evaluable.
+- Revoking a member lapses allowances that covered it and challenges every ADMITTED hyperedge that uses it. Narrowing an admitted bounded term revalidates its hyperedges.
+
+**What building it taught us**
+- **A contradiction must not vanish when an allowance lapses.** My first `support()` filtered every allowance-bound binding by its allowance, so a lapsed allowance made a contradiction stop counting without a human dismissing it: fail-open. Now only *supporting* bindings depend on their allowance; a contradiction counts until a human dismisses it, or until its evidence is revoked (revoked evidence asserts nothing).
+- **Voiding a contradiction needs a human, and a machine revokes evidence.** The two rules collide in the revocation cascade. Resolution: a non-human revocation leaves a contradicting binding un-voided (it stops counting anyway); a human revocation voids it. **The doctrine says "revoking evidence voids every binding that uses it"; this is a narrower rule and needs to be stated there.**
+- **`proposed_by` is not in the doctrine's binding schema**, but the database cannot otherwise refuse an allowance granted by the proposer. It is stored on the binding.
+- **A hyperedge that leaves PENDING by database rules needs readiness.** Once the database checked the boundaries, 96 older tests that raw-admitted a bare hyperedge failed, correctly. Fixed with a shared `ready()` helper rather than by loosening any rule.
+- **Two rules cannot be isolated by a test.** Only-SUPPORTS-counts-as-support in the admission trigger is redundant with the contradiction trigger (a hyperedge with only a contradiction cannot be admitted either way); several `CHECK`s sit behind triggers that fire first. Left as defence in depth and noted in the tests.
+
+**Verification.** 67 probes on bindings, allowances and revision (one gap found: the closed polarity list) and 50 on the boundaries, admission, review resolution and cascades (three not caught at first: two real gaps closed with tests, one redundant rule documented). Every rule now has a test that fails when it is removed. Trial on a scratch copy of the verified backup, with a REAL tool-output candidate: verified by a human, bound, admitted through the boundaries, challenged by a contradiction, not reaffirmable while contradicted, not dismissable by a machine, dismissed by a human and reaffirmed, then revoked, which voided the binding and challenged the hyperedge. All 1,071 candidates' immutable columns unchanged, the four other gateway tables identical, chain and `quick_check` ok, live ledger untouched.
+
+**Decisions taken in this slice that the doctrine does not state (please confirm or overrule)**
+1. Returning from review to PENDING (`rerun`) needs its own `REVISION_CLOSE` `PEND` receipt.
+2. A `CAUSAL` hyperedge with several SUBJECT members: each subject is a cause of each object when checking for loops.
+3. Evidence cannot be bound while a hyperedge is UNDER_REVIEW or CHALLENGED, only while PENDING or ADMITTED. Evidence that arrives during a review has to wait for the outcome. That is inherited from the prototype and may be too strict.
+4. A voided binding is never re-bound; a retry needs a new hyperedge that names the old one (F7).
+5. The doctrine's timestamps are still "epoch numbers" while the store uses ISO text.
+
+**Still open**: the database cannot block a planted ADMITTED candidate row in `candidate_evidence` (INSERT triggers on gateway tables are banned); 徑界 has no temporal-overlap check (section 8.4 point 2); nothing anchors the chain head outside the database (D3).
+
+## Phase 1, slices 5 and 6: projection and the integrity check (2026-09-20)
+
+Slices 1 to 4b are committed (`6035f51` to `745bfc8`; 1 to 4a are also on the private remote via the other session's push). **Slices 5 and 6 are built and NOT committed**: `integrity.py` (the check and a read-only command), `projection.py`, `tests/test_hypergraph_integrity.py` (72). Suite: **676 passed** (87 gateway + 589 hypergraph).
+
+**The integrity check** answers what neither triggers nor the chain can: is every row still explained by the record? It is read-only and fail-closed. Its checks: guards (every table, index and trigger the migrations created is present and unaltered, and no unknown trigger sits on our tables or the gateway's candidate table); the receipt chain; candidates (body still matches its hash; an ADMITTED, DENIED or REVOKED one is backed by a record and receipts; a generative one is never admitted); evidence records (hash sealed in the receipt, text canonical, tier 3 verified by a human); semantic objects; hyperedges (signature, admission receipt, state explained by the latest move receipt, and an ADMITTED one **still clears every boundary**, including no causal loop); bindings and allowances; orphan receipts. The command is `python -m app.hypergraph.integrity [--db PATH]`, opened read-only, exit 0 clean and 1 not.
+
+**It closes the known limit from slice 3**: the database cannot stop someone inserting an `ADMITTED` candidate row into the gateway's table (INSERT triggers there are banned). The check finds it (`ADMITTED_CANDIDATE_WITHOUT_RECORD`), and reproduced on a copy of the real ledger with the gateway's own insert path. It also finds what the triggers cannot: a dropped or weakened trigger, an added column, a trigger someone planted, a forged evidence hash with recomputed text (the prototype's F17 attack), a hyperedge admitted behind the boundaries, a causal loop, a contradiction dismissed by a machine, an allowance granted by its proposer.
+
+**Projection** is a derived view recomputed on every call, and it fails closed: only an ADMITTED hyperedge that clears the integrity check is assertable. A problem about a hyperedge withdraws that hyperedge; a global problem (a broken chain, a missing guard) withdraws everything. A problem about an unrelated candidate withdraws nothing.
+
+**What building it taught us**
+- **The check has to tolerate being run on a store it does not understand.** Run on the unmigrated real ledger, it first reported a wall of "guard missing" for guards that were never created. It now compares only the migrations that have run, and says one thing: migrations pending.
+- **Tests that tamper need the guards intact.** The tamper helper drops every trigger, tampers, then restores them exactly, so the only difference from a clean store is the tamper. That is why each check has a test that fails when it is silenced.
+- **A weakness in my own probes**: the probe for "the command opens read-only" survived because an unchanged file hash proves nothing; a test now captures the connection URI.
+
+**Verification.** 54 probes (one silencing each problem code, plus compound conditions and the projection), one gap found and closed. Trial on a scratch copy of the verified backup with real data: the unmigrated ledger reports only `MIGRATIONS_PENDING`; after a real admission flow (a real tool-output candidate verified by a human) the check is clean (0.01 s for 1,071 candidates); a planted `ADMITTED` candidate row is the only problem reported and does not withdraw the unrelated hyperedge; the command exits 1; live ledger untouched.
+
+**Limits that remain**
+- Chain truncation (deleting the newest receipts and their effects) is undetectable inside the database. Only the chain-head anchor outside it (decision D3, Phase 2) can catch it.
+- Someone who can rewrite the whole database and rebuild the chain is out of scope, as the doctrine states.
+- Lineage hashes are not recomputed (a later receipt on a terminal predecessor would make a false alarm); the predecessor's existence and terminal state are checked.
+- 徑界 has no temporal-overlap check (section 8.4 point 2).
+
+## Phase 3: the CHI glossary in the real store (2026-09-20)
+
+Built and **not committed**: `app/hypergraph/glossary.py` (parse, plan, `load`, `verify`, `status`, `define`, and the command `python -m app.hypergraph.glossary`) and `tests/test_hypergraph_glossary.py` (51). Suite: **725 passed**. The migrations and the loader have never been run on the live ledger.
+
+**Two phases, because the doctrine leaves no other honest design.** `load` is the machine phase: it narrows each term on its recorded basis (the source), has the adjudicator admit the objects, proposes every claim as a `PENDING` hyperedge with confidence 1.0 ("the source states this", not "this is correct"), and inserts each piece of evidence as a `CANDIDATE` through the gateway's own insert path. It admits nothing about evidence. `verify` is the only step that admits evidence, and tier-3 evidence can only be verified by a human, so the command needs `--by human:NAME` and a note, and refuses anything else. **The loader never supplies a human on anyone's behalf, and I did not run it as one.** In the trial the identity is `human:trial-verifier`, on a scratch copy, marked as such.
+
+**Safety properties (each has a test that fails when it is removed).** It refuses the configured live ledger without an explicit `--allow-live`, refuses an unmigrated store (migrations stay an explicit step), and refuses a plan whose collisions the map no longer states. It is idempotent (deterministic ids: a second load and verify add no receipts) and resumable after an interruption. If a source changed after it was loaded, the claim is reported as **drift** and left alone, not silently re-pointed: revoking and reloading it is a human decision. `define` reads only claims that are admitted and pass the integrity check, and fails closed.
+
+**Real result (scratch copy of the verified backup, real glossaries):** 75 terms, 139 avoided aliases (7 with a qualifying note), 3 groups, 227 objects, 264 claims. Load 0.4 s, verify 0.2 s. After load: integrity clean, no evidence admitted. After verification by the trial identity: 264 hyperedges ADMITTED, 264 evidence records, 1,510 receipts, integrity clean, chain verifies, 1.9 MB added. The five gateway tables are unchanged except two insert-only additions: 3 request receipts in `agent_request_receipts` and 264 new candidate rows (all now ADMITTED); the 1,071 original candidates are all still `CANDIDATE` with their immutable columns unchanged. The live ledger was untouched.
+
+**What building it taught us**
+- **Gateway rows the loader must write have a meaning it does not own.** Evidence candidates need a request receipt, and a receipt's `admission_state` means "the request passed policy". The loader records `NOT_EVALUATED`, because the gateway never evaluated anything for it. The rows still sit in the gateway's audit tables; on the live ledger that is a real, insert-only write, so it needs your explicit go-ahead.
+- **Evidence provenance points at the ledger request, not the file.** The evidence record's `provenance_uri` is `gateway-ledger://request/<id>`; the file, its hash and the anchor are in the request body and the candidate body. Fine for audit, but the doctrine's "immutable path or locator" is satisfied only indirectly.
+- **A new evidence kind would need a new trigger, which the additive guard forbids.** Glossary extractions are recorded as `tool_output` from an adapter (`glossary-md`), tier 3, because a `document` kind cannot be admitted without dropping the slice-3 kind trigger. Noted as a limitation, not hidden.
+- **`define` had no ORDER BY**: which supporting binding gave the definition was arbitrary. Found only because a probe survived; it now takes the earliest counting binding.
+- **Probes.** 40 on the loader and `define`; six gaps found and closed with tests (an alias and a term sharing text in one glossary, resuming a verification, a request following file content, voided bindings never supplying a definition, and others).
+
+**Still open before this can run on the live ledger:** (1) your explicit go-ahead to run the six migrations there (a one-way step on a single 454 MB file, backed up at `receipts/backups/`); (2) a real human to run `verify --by human:<you>`; (3) Phase 2 (the chain-head anchor and a startup health check), so tampering with the newest receipts is detectable.
+
+## The CHI glossary prototype database exists (2026-09-20)
+
+Your objective: the CHI Platform glossary in the hypergraph database, to begin prototyping the CHI application. Decisions you made: a **separate prototype database** (not the live gateway ledger), and **you run verification yourself**.
+
+**Done.** `~/Projects/chi/hypergraph-db/chi_hypergraph.PROTOTYPE.sqlite3` (1.1 MB, mode 600, gitignored, rebuildable) was created with the gateway's own schema plus the six hypergraph migrations, and the machine phase of the loader was run on your real glossaries: 75 terms, 139 avoid entries (136 distinct words), 227 objects, 264 claims. Integrity is clean. The live ledger was not touched (size and mtime unchanged). `hypergraph-db/README.md` documents the model, the commands, a read-only Python usage example (checked against the real file) and how to rebuild.
+
+**Not done, by design: verification.** Every claim is `PENDING` and every piece of evidence a `CANDIDATE`, so nothing is *asserted* yet and `define` says "(not verified yet)". Under the doctrine only a human admits tier-3 evidence, and I did not record a verification on your behalf. The exact command, with `--by human:YOURNAME`, is in the README.
+
+**Built along the way:** `python -m app.hypergraph.migrations {status|migrate} --db PATH [--create]` (creates a new store with the gateway schema; refuses the live ledger and existing files; `status` is read-only) and a scoped `db.pointed_at()` that redirects the gateway ledger setting for one command and restores it. **A real hazard was found and fixed**: the first version of the command left the redirection in place, so a later command in the same process treated its target as the configured ledger. 8 probes on the new command; one gap (read-only `status`) closed with a test. Suite: 733 passed.
 
