@@ -77,10 +77,18 @@ cd ~/Projects/chi-platform/infra/chi_agent_gateway
 
 Both commands refuse the gateway's live ledger unless `--allow-live` is given, and `--create` refuses an existing file.
 
+## Tamper-evidence: the anchor
+
+Every committed write appends the receipt chain's head to a sidecar file beside the database
+(`chi_hypergraph.PROTOTYPE.sqlite3.anchor.jsonl`, gitignored, mode 600). It catches someone who rewrites or truncates only the
+database, which the chain alone cannot. `integrity` includes it; check it on its own with
+`../../.venv/bin/python -m app.hypergraph.anchor status --db DB`. It does not stop someone who can rewrite both files: keep a copy
+elsewhere if that matters. The first anchor (718 receipts) was written with `anchor sync` after the integrity check was clean.
+
 ## Limits to know while prototyping
 
 * Nothing is asserted until a human verifies (by design). Prototype against `define`/`status`, or verify first.
 * Evidence records point at a ledger request (`gateway-ledger://request/...`), not the file; the file, its hash and the anchor are
   in the request and candidate bodies.
 * A claim says "the source states this", not "this is correct" (confidence 1.0 with that note).
-* Chain truncation is not yet detectable (the chain-head anchor is Phase 2).
+* The anchor lives on the same machine; it raises the bar but does not remove it (see above).
