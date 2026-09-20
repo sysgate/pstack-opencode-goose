@@ -290,3 +290,22 @@ At your "go with your recommendations" I picked the first query to build on the 
 
 **On your real glossary** (a throwaway copy, verified under the marked identity `human:trial-verifier`, then deleted; the prototype database was untouched): it flagged `approval` (use Admission or Verification), `sign-off` (Verification), `workspace` (Scope) and marked `scope` and `audit log` as ambiguous across the two contexts. It also flagged `scope` as an avoided word in favour of *Covered tool*, with the note "that names a folder tree": that is the gate glossary's own deliberate disambiguation, kept as a condition.
 
+## Wiring lint into an agent workflow: the glossary hook (2026-09-20)
+
+You chose to wire `lint` into an agent workflow. The workflow that exists here is Claude Code, so it is a **PostToolUse hook** (`app/hypergraph/glossary_hook.py`): after an agent writes prose, it lints the new text and hands the agent an advisory note. Built and **not committed** (code, 41 tests, 28 probes; suite 857 passed); **registered** in `~/Projects/chi/.claude/settings.local.json` (personal, gitignored, not tracked).
+
+**Decisions I took, and why**
+- **Advisory, never blocking.** A wording helper must not stop work; the agent decides.
+- **Quiet and fail-open.** Any error, a missing store or an unverified glossary prints nothing and exits 0 (errors are logged). Silence therefore means "nothing to say", not "checked and clean"; `status` says which.
+- **Only the new text**, not the whole file, so old wording is not nagged about; code blocks, inline code and the glossary's own `_Avoid_:` lines are ignored; the glossary sources and change logs are skipped because they discuss the avoided words on purpose.
+- **Ambiguity notes off by default**: every mention of "scope" would trigger one. Avoided words only.
+- **A separate hook, in the local settings file.** `.claude/settings.json` already holds your jev-gate PreToolUse permission gate; I did not touch it. The lint hook merges alongside it, and removing it is deleting one key.
+
+**Found while building it (a real bug):** `projection.project` and `define` crashed with "no such table: hyperedges" on a ledger that had never been migrated, instead of failing closed. Fixed in both (with a test); `lint` and the hook's `status` inherited the fix.
+
+**Proven** by running the registered command exactly as Claude Code will: against the real, unverified prototype store it is silent; against a throwaway copy verified under a marked trial identity (deleted afterwards) it flagged `sign-off` (use Verification) and `workspace` (use Scope) and ignored `` `approval` `` in backticks.
+
+**What I could not test:** a live Claude Code session. I tested the command, its JSON output and its exit codes, not Claude Code reading them. The output uses `hookSpecificOutput.additionalContext` for `PostToolUse`. **Claude Code reads hooks at session start, so restart the session after verifying the glossary and try it once.**
+
+**Still yours:** verifying the prototype database; until then the hook is inert.
+

@@ -78,6 +78,28 @@ cd ~/Projects/chi-platform/infra/chi_agent_gateway
 
 Both commands refuse the gateway's live ledger unless `--allow-live` is given, and `--create` refuses an existing file.
 
+## Agent workflow: the glossary lint hook
+
+A Claude Code **PostToolUse** hook checks the prose an agent has just written (Write, Edit, MultiEdit on `.md/.mdx/.txt/.rst` files
+under `~/Projects/chi`) against the verified glossary and hands the agent a short advisory note ("`sign-off` is avoided; use
+Verification"). It is registered in `.claude/settings.local.json` (personal and gitignored; your committed `settings.json` and the
+jev-gate PreToolUse hook are untouched). Properties: advisory only (never blocks), quiet and fail-open (any error or an unverified
+glossary means silence, errors go to `~/.local/state/chi-glossary-hook/hook.log`), read-only, checks only the new text, ignores code
+blocks and the glossary's own `_Avoid_:` lines, skips the glossary sources and the change logs (`CONTEXT.md`, `CONTEXT-MAP.md`,
+`MAP.md`, `project-map.md`, `.scratch/`).
+
+```bash
+cd ~/Projects/chi-platform/infra/chi_agent_gateway
+../../.venv/bin/python -m app.hypergraph.glossary_hook status                 # active, or why not
+../../.venv/bin/python -m app.hypergraph.glossary_hook check-file PATH.md     # what it would say about a file
+```
+
+It does nothing until you verify the glossary. **Claude Code reads hooks when a session starts**, so restart the session (or review
+`/hooks`) after any change. To turn it off: `CHI_GLOSSARY_HOOK=off`, or delete the `hooks` key from `.claude/settings.local.json`
+(a copy of the file as it was before is kept by the session that added it). Other knobs: `CHI_GLOSSARY_COLLISIONS=1` also reports
+words that mean different things in two contexts (off by default: every "scope" would trigger it), `CHI_GLOSSARY_MAX_FINDINGS`,
+`CHI_GLOSSARY_ROOTS`, `CHI_GLOSSARY_DB`.
+
 ## Tamper-evidence: the anchor
 
 Every committed write appends the receipt chain's head to a sidecar file beside the database
