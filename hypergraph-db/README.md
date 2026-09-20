@@ -5,23 +5,15 @@
 prototype file**, not the gateway's live audit ledger. Nothing here touches `chi-platform/infra/chi_agent_gateway/receipts/`.
 The file is gitignored (`*.sqlite3`); the Markdown glossaries stay authoritative and this file can always be rebuilt from them.
 
-## State right now: loaded, NOT yet verified
+## State right now: loaded and VERIFIED
 
-The machine phase is done: every term and claim is proposed, and every claim's evidence is a `CANDIDATE`. Nothing is *asserted*
-yet, because under the doctrine extracted (tier 3) evidence is admitted only by a human. Until you verify, `define` answers with
-"(not verified yet)" and the projection marks every claim "Pending Evidence".
+All 264 claims are `ADMITTED` and assertable. On 2026-09-20 the evidence was verified by `human:robert-lai` with the note
+"reviewed the CHI glossaries on 2026-09-20" (recorded on all 264 admission receipts, tier 3, and sealed with the content hash).
+The verification was run at Robert Lai's direction after his own attempt hit a shell quoting error; the name was written without a
+space (`human:robert-lai`) so it is easy to search. Integrity is clean (1,510 receipts) and the anchor agrees.
 
-**Verification is your act.** When you have reviewed the glossaries, run (as yourself):
-
-```bash
-cd ~/Projects/chi-platform/infra/chi_agent_gateway
-../../.venv/bin/python -m app.hypergraph.glossary verify \
-  --db ~/Projects/chi/hypergraph-db/chi_hypergraph.PROTOTYPE.sqlite3 \
-  --by human:YOURNAME --note "reviewed the CHI glossaries on YYYY-MM-DD"
-```
-
-It records who verified and your note on every admission receipt, binds the evidence, and puts each claim through the four
-boundaries. Then every claim is `ADMITTED` and assertable.
+If a glossary changes after this, `status` reports the claim as **drift** and leaves it alone; rebuild from the sources (below), or
+revoke and reload, and verify again. Verification is a human act: only a `human:NAME` can do it.
 
 ## Commands (all run from `chi-platform/infra/chi_agent_gateway`, using `../../.venv/bin/python -m ...`)
 
@@ -94,7 +86,7 @@ cd ~/Projects/chi-platform/infra/chi_agent_gateway
 ../../.venv/bin/python -m app.hypergraph.glossary_hook check-file PATH.md     # what it would say about a file
 ```
 
-It does nothing until you verify the glossary. **Claude Code reads hooks when a session starts**, so restart the session (or review
+It is active now that the glossary is verified. **Claude Code reads hooks when a session starts**, so restart the session (or review
 `/hooks`) after any change. To turn it off: `CHI_GLOSSARY_HOOK=off`, or delete the `hooks` key from `.claude/settings.local.json`
 (a copy of the file as it was before is kept by the session that added it). Other knobs: `CHI_GLOSSARY_COLLISIONS=1` also reports
 words that mean different things in two contexts (off by default: every "scope" would trigger it), `CHI_GLOSSARY_MAX_FINDINGS`,
@@ -110,7 +102,7 @@ elsewhere if that matters. The first anchor (718 receipts) was written with `anc
 
 ## Limits to know while prototyping
 
-* Nothing is asserted until a human verifies (by design). Prototype against `define`/`status`, or verify first.
+* Nothing is asserted until a human verifies (by design); after a rebuild, verify again.
 * Evidence records point at a ledger request (`gateway-ledger://request/...`), not the file; the file, its hash and the anchor are
   in the request and candidate bodies.
 * A claim says "the source states this", not "this is correct" (confidence 1.0 with that note).
