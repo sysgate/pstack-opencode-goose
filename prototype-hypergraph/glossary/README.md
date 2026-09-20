@@ -10,6 +10,7 @@ python3 glossary_cli.py collisions          # same word, different meaning, both
 python3 glossary_cli.py groups
 python3 glossary_cli.py stats
 python3 glossary_cli.py verify              # round trip against the source files + store integrity
+python3 glossary_viz.py                     # write chi-glossary-hypergraph.html: an offline, clickable map of the hypergraph
 ```
 
 ## What is in it

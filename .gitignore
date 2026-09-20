@@ -44,6 +44,10 @@ secrets/
 *hypergraph*.sqlite*
 *hypergraph*.db*
 
+# generated glossary visualization (derived from the ignored store) and its cached, hash-pinned Cytoscape.js
+prototype-hypergraph/glossary/chi-glossary-hypergraph.html
+prototype-hypergraph/glossary/.viz-cache/
+
 # evaluation corpora built from real session/command history (personal; the jev-gate tests skip when absent),
 # and reports generated from them
 .scratch/permission-gate/data/
