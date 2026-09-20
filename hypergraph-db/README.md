@@ -5,6 +5,22 @@
 prototype file**, not the gateway's live audit ledger. Nothing here touches `chi-platform/infra/chi_agent_gateway/receipts/`.
 The file is gitignored (`*.sqlite3`); the Markdown glossaries stay authoritative and this file can always be rebuilt from them.
 
+## Which store is which (there are two)
+
+| | **This store** (use this one) | The old throwaway prototype (do not build on it) |
+|---|---|---|
+| File | `hypergraph-db/chi_hypergraph.PROTOTYPE.sqlite3` | `prototype-hypergraph/glossary/chi-glossary.PROTOTYPE-rebuildable.sqlite3` |
+| Built by | the real store in `chi-platform` (`app/hypergraph/`): database-enforced rules, integrity check, anchor | the throwaway `prototype-hypergraph/hypergraph.py`, whose only job was to find gaps in the doctrine |
+| Glossary snapshot | 2026-09-20 (75 terms, 264 claims) | 2026-09-19 (73 terms, 256 claims, 222 objects) |
+| Admitted by | a human, with a note, sealed in each receipt (`human:robert-lai`) | the loader script itself, as `sys`; **no human verification** (that rule was decided after it was built) |
+| Tamper-evident | receipt chain plus the outside anchor, and a read-only integrity check | receipt chain only |
+| Status | the one to prototype against | frozen; kept as the record of what the prototype found (`prototype-hypergraph/FINDINGS.md`) |
+
+The old store also shows every claim as `ADMITTED`, which is why it is easy to mistake for verified authority. It is not: under the
+accepted doctrine, extracted (tier 3) evidence is admitted only by a human. Its schema differs too (integer timestamps, no
+`candidate_evidence` link), so queries written against one will not run against the other. If you see 222 objects or 256 claims, you
+are looking at the old one.
+
 ## State right now: loaded and VERIFIED
 
 All 264 claims are `ADMITTED` and assertable. On 2026-09-20 the evidence was verified by `human:robert-lai` with the note
