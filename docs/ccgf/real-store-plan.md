@@ -284,3 +284,9 @@ Built and **not committed**: `app/hypergraph/anchor.py`, `app/hypergraph/health.
 
 **Not done, and needs your decision.** Running the six migrations on the live ledger, then the glossary load, then your verification. With Phase 2 in place, tampering with the newest receipts is now detectable, which was my stated precondition for that step.
 
+## First application primitive: `lint` (2026-09-20)
+
+At your "go with your recommendations" I picked the first query to build on the store: **check text against the glossary**. `python -m app.hypergraph.glossary lint --db DB --text "..."` (or `--file F`, `-` for stdin) flags words the glossary says to avoid, names the term to use instead (with any qualifying note, so the advice can be conditional), and flags words that mean different things in different contexts (the gate's *Scope* is not CCGF's). Whole words and phrases, case-insensitive, longest phrase first; exit 1 if anything is flagged. It is read-only (`mode=ro`) and uses **only claims that are admitted and pass the integrity check**: before verification it reports nothing and says why, and it never reports a claim that is only pending. Built and **not committed**: `lint`/`vocabulary` in `glossary.py`, 15 tests (suite 814 passed), 15 probes, one real gap closed (a collision looked up from its other side).
+
+**On your real glossary** (a throwaway copy, verified under the marked identity `human:trial-verifier`, then deleted; the prototype database was untouched): it flagged `approval` (use Admission or Verification), `sign-off` (Verification), `workspace` (Scope) and marked `scope` and `audit log` as ambiguous across the two contexts. It also flagged `scope` as an avoided word in favour of *Covered tool*, with the note "that names a folder tree": that is the gate glossary's own deliberate disambiguation, kept as a condition.
+

@@ -28,6 +28,7 @@ boundaries. Then every claim is `ADMITTED` and assertable.
 | Command | What it does |
 |---|---|
 | `app.hypergraph.glossary define --db DB --word Scope` | Read-only. What the store asserts about a word: definition, group, words to avoid, collisions. Only admitted claims that pass the integrity check. |
+| `app.hypergraph.glossary lint --db DB --text "..."` (or `--file F`) | Read-only. Checks text against the glossary: words it says to avoid (with the term to use instead and any qualifying note) and words that mean different things in different contexts. Exit 1 if it flags anything. Reports nothing until the glossary is verified. |
 | `app.hypergraph.glossary status --db DB` | Loaded / verified / admitted / drifted counts. |
 | `app.hypergraph.integrity --db DB` | Read-only check that every row is still explained by the receipts. Exit 0 clean, 1 not. |
 | `app.hypergraph.glossary load --db DB` | Re-run after editing a glossary: adds what is new, never changes what is loaded. |
