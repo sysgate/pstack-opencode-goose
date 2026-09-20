@@ -128,5 +128,5 @@ Built on `hypergraph-store` (uncommitted): migration 2 (`semantic_objects`), `ob
 
 ## D4 refined (2026-09-20)
 
-D4 ("use `candidate_evidence` as the evidence lifecycle") is specified in `proposed-evidence-lifecycle.md`, with decisions E1 (tier 4 is never bindable), E2 (refusal-only triggers on the gateway table, a narrow exception to additive-only) and E3 (only a human verifies tier 3). Doctrine text not yet applied; slice 3 (evidence) waits on that.
+D4 ("use `candidate_evidence` as the evidence lifecycle") is specified in `proposed-evidence-lifecycle.md`, with decisions E1 (tier 4 is never bindable), E2 (refusal-only triggers on the gateway table, a narrow exception to additive-only) and E3 (only a human verifies tier 3). The doctrine text was applied on 2026-09-20; slice 3 (evidence) builds against it.
 

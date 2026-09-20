@@ -1,6 +1,6 @@
 # Proposed: an evidence lifecycle (decision D4; closes F8 and F19)
 
-**Status (2026-09-20): DRAFT, decisions E1 to E3 made (see the end). Nothing here has been applied to any doctrine file, and no code has been written for it.**
+**Status (2026-09-20): APPLIED to the doctrine (`ARCHITECTURE.md` §9.1 and §9.2, the four `AGENTS.md` copies, the glossary), with decisions E1 to E3 as recorded at the end. The code (slice 3) is in progress; the text below is otherwise kept as drafted.**
 
 ## Why
 
@@ -58,8 +58,8 @@ All three recommended options were chosen.
 - **E2:** refusal-only triggers on `candidate_evidence`. This is **one narrow exception to the additive-only rule**, to be enforced by the migration guard: a trigger on a gateway table is allowed only if its body contains nothing but `RAISE`, so it can abort an illegal update and can never write. The gateway only inserts into this table, so it cannot be affected.
 - **E3:** only a human authority may verify tier-3 evidence.
 
-**What applying it would involve (not done)**
-- The doctrine edits listed above, to `ARCHITECTURE.md`, the four `AGENTS.md` copies and the glossary. That is a doctrine change, and the doctrine sync is otherwise stopped, so it needs your go-ahead.
+**What applying it involved**
+- The doctrine edits listed above, to `ARCHITECTURE.md`, the four `AGENTS.md` copies and the glossary: DONE on 2026-09-20 at your go-ahead.
 - Code (slice 3): a migration for `evidence_records`, refusal-only triggers on `candidate_evidence` behind a stricter migration guard, the promotion and revocation operations, and tests including a sabotage probe for each rule.
 - Prototype scenario 4 changes (a tier-4 record can no longer be bound); the prototype is throwaway and is left as it is unless you want it updated.
 
