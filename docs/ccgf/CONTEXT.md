@@ -178,8 +178,12 @@ _Avoid_: safe default
 A shortcut past a chain stage, allowed only when explicitly marked, isolated by a test, and tracked by a follow-up to replace it with the governed path.
 _Avoid_: bypass, temporary hack
 
+**Verification**:
+A human authority's decision that extracted (tier 3) evidence may be admitted, recorded on the admission receipt with who verified it and any note.
+_Avoid_: approval, sign-off
+
 **Authority tier**:
-The rank of an evidence source: canonical provenance, admitted hypergraph state, extracted candidate evidence, generative hypotheses. Generative hypotheses are tracked but are never admitted evidence and never satisfy evidence governance alone.
+The rank of an evidence source: canonical provenance, admitted hypergraph state, extracted candidate evidence, generative hypotheses. Generative hypotheses are tracked as candidates but never admitted, and so never bound to a hyperedge.
 _Avoid_: trust level, source score
 
 **Admission state**:

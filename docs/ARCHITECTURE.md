@@ -79,7 +79,7 @@ Candidate Expression ──┼──► UNRESOLVED (Halted; awaiting contextual 
 ```
 
 * **The DSN Invariant**: An LLM's "most probable interpretation" is *never* accepted as deterministic narrowing. Evidence is **never** bound to an `UNRESOLVED`, `CONFLICT`, `DENIED`, or uncommitted term, nor to a `BOUNDED_AMBIGUOUS` term without an ambiguity allowance.
-* **Ambiguity Allowance**: Evidence may bind to a hyperedge with a `BOUNDED_AMBIGUOUS` member only under an ambiguity allowance: a receipt (`AMBIGUITY_ALLOW`, decision `BOUND`) granted by a human authority for one binding, naming the exact combinations of meanings the evidence holds under (each combination assigns one remaining meaning to every bounded member, so two ambiguous terms are never approved separately). When a covered term is narrowed, combinations that no longer match are dropped: the allowance stays in force while a covered term is still bounded; once every covered term is narrowed the binding stands as an ordinary one if a granted combination matches, and is voided if none remains. If that leaves a `PENDING` hyperedge without support it stays `PENDING` with `UNSUPPORTED` recorded; if it leaves an `ADMITTED` hyperedge without support, the hyperedge becomes `CHALLENGED` and is withdrawn from projection. Without an allowance the binding is refused and the claim stays `PENDING`.
+* **Ambiguity Allowance**: Evidence may bind to a hyperedge with a `BOUNDED_AMBIGUOUS` member only under an ambiguity allowance: a receipt (`AMBIGUITY_ALLOW`, decision `BOUND`) granted by a human authority for one binding, naming the exact combinations of meanings the evidence holds under (each combination assigns one remaining meaning to every bounded member, so two ambiguous terms are never approved separately). When a covered term is narrowed, combinations that no longer match are dropped: the allowance stays in force while a covered term is still bounded; once every covered term is narrowed the binding stands as an ordinary one if a granted combination matches, and is voided if none remains. If that leaves a `PENDING` hyperedge without support it stays `PENDING` with `UNSUPPORTED` recorded; if it leaves an `ADMITTED` hyperedge without support, the hyperedge becomes `CHALLENGED` and is withdrawn from projection. Without an allowance the binding is refused and the claim stays `PENDING`. The allowance also lapses when its evidence is revoked, which voids the binding.
 
 ---
 
@@ -368,7 +368,7 @@ interface HyperedgeMember {
 
 interface HyperedgeEvidenceBinding {
   hyperedge_id: string;        // Foreign key to hyperedges.id
-  evidence_id: string;         // Foreign key to evidence_records.id
+  evidence_id: string;         // Foreign key to evidence_records.id (admitted evidence only)
   polarity: 'SUPPORTS' | 'CONTRADICTS';
   receipt_id: string;          // Evidence binding receipt
   allowance_receipt_id: string | null; // AMBIGUITY_ALLOW receipt when a member is BOUNDED_AMBIGUOUS, otherwise null
@@ -379,10 +379,26 @@ interface HyperedgeEvidenceBinding {
 
 *Voiding a binding.* A binding is never deleted: it is voided with a reason and a `REVISION_CLOSE` receipt, and a voided binding no longer counts for 據界. Dismissing a `CONTRADICTS` binding, which is what allows a challenged hyperedge to be reaffirmed, needs a human authority. The system voids a `SUPPORTS` binding automatically when its allowance lapses.
 
+#### 3a. Evidence Candidate (`candidate_evidence`)
+```typescript
+interface EvidenceCandidate {
+  id: string;                  // Candidate ID
+  source_agent: string;        // Which agent or adapter produced it
+  evidence_kind: string;       // What it is, for example model_response or tool_output; the kind decides the authority tier
+  evidence_hash: string;       // SHA-256 of the canonical JSON of the body
+  evidence_body_json: string | null; // The raw material as JSON text; a candidate with no body cannot be admitted
+  request_receipt_id: string;  // Provenance: the request it came from
+  created_at: string;          // ISO-8601 UTC timestamp
+  evidence_state: EvidenceState; // CANDIDATE | ADMITTED | DENIED | REVOKED
+  admission_receipt_id: string | null; // The admission receipt, once admitted
+}
+```
+
 #### 3. Evidence Object (`evidence_records`)
 ```typescript
 interface EvidenceRecord {
   id: string;                  // Deterministic content hash ID
+  candidate_id: string;        // The candidate this record was admitted from: a record exists only through admission
   source_id: string;           // Provenance URI / identifier
   source_type: string;         // Document | API | SystemReceipt | UserAssertion
   authority_tier: AuthTier;    // TIER_1_CANONICAL > TIER_2_ADMITTED > TIER_3_EXTRACTED > TIER_4_GENERATIVE
@@ -417,7 +433,16 @@ When ranking and admitting evidence, CHI evaluates sources strictly by tier:
 1. **Tier 1 (Canonical / Primary Provenance)**: Cryptographically verified artifacts, deterministic system logs, signed raw documents, authoritative external ledgers.
 2. **Tier 2 (Admitted Hypergraph State)**: Previously admitted CHI knowledge supported by verified receipts and closed revision lifecycles.
 3. **Tier 3 (Extracted Candidate Evidence)**: Structured extractions from external adapters (Nessus, Schwab, Obsidian, QMD) awaiting verification.
-4. **Tier 4 (Generative Hypotheses)**: Model outputs, ungrounded assistant proposals, unadmitted summaries. Tier 4 records are tracked as candidates; they are never admitted evidence and never satisfy 據界 alone.
+4. **Tier 4 (Generative Hypotheses)**: Model outputs, ungrounded assistant proposals, unadmitted summaries. Tier 4 candidates are tracked but never admitted, and so are never bound to a hyperedge.
+
+**Evidence lifecycle.** Evidence has a lifecycle: `CANDIDATE`, then `ADMITTED` or `DENIED`; `ADMITTED` may become `REVOKED`. `DENIED` and `REVOKED` are terminal, and a retry is a new candidate.
+* A candidate is raw material with provenance. An evidence record is created only by admission and points back at its candidate.
+* The tier follows from the source: output of the generative layer is tier 4, deterministic extraction is tier 3, tier 1 needs a verifiable canonical artifact, and tier 2 derives from admitted hypergraph state, never from a candidate.
+* Tier 4 candidates are never admitted (they may be denied), and so are never bound to a hyperedge.
+* Admitting tier 3 evidence is verification. In v1 only a human authority may verify, and the admission receipt records who verified it and any note.
+* Admission requires the SHA-256 of the canonical JSON of the body to equal the candidate's stored hash. A candidate with no body, or one that no longer matches, cannot be admitted. The hash is sealed in the admission receipt.
+* Revoking admitted evidence voids every binding that uses it (by the system, with `REVISION_CLOSE` receipts). A hyperedge left without support becomes `CHALLENGED` if it was `ADMITTED`, and stays `PENDING` with `UNSUPPORTED` recorded otherwise.
+* Admission and denial are `EVIDENCE_ADMIT` receipts (`ADMIT`, `DENY`); revocation is a `REVISION_CLOSE` receipt (`REVOKE`).
 
 ### 9.3 SQLite Authority Store Invariants
 SQLite is the canonical local persistence engine for CHI:

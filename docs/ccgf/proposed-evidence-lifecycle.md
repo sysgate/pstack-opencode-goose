@@ -1,6 +1,6 @@
 # Proposed: an evidence lifecycle (decision D4; closes F8 and F19)
 
-**Status: DRAFT for your approval. Nothing here has been applied to any doctrine file, and no code has been written for it.**
+**Status (2026-09-20): DRAFT, decisions E1 to E3 made (see the end). Nothing here has been applied to any doctrine file, and no code has been written for it.**
 
 ## Why
 
@@ -50,3 +50,16 @@ The 1,066 model responses can never be admitted (rule 4). The 5 tool outputs are
 **E2. How is the gateway's table guarded?** The state must move on `candidate_evidence`, but migrations may not alter gateway tables, and the gateway itself only ever inserts. Recommend **refusal-only triggers on `candidate_evidence`**: they can only abort an illegal update (a state move outside the lifecycle, or any change to the body, hash, kind or request link) and never write anything, so the gateway cannot be affected. This needs one narrow exception to the "additive only" rule, enforced by the migration guard (a trigger on a gateway table must contain nothing but `RAISE`). *Alternatives:* Python and the integrity check only (no database enforcement on that table), or a separate lifecycle table that leaves the gateway table untouched forever (its `evidence_state` would then stay `CANDIDATE` and mislead).
 
 **E3. Who may verify tier-3 evidence?** Recommend a **human authority only** in v1, consistent with allowances and contradiction dismissal. *Alternative:* a human, or the system running a registered deterministic verifier. That would need the verifier itself specified first, and none exists.
+
+## Decisions made (2026-09-20)
+
+All three recommended options were chosen.
+- **E1:** a tier-4 candidate can never be bound to a hyperedge. Tier 4 is never admitted, so it never appears as support. The sentence "never satisfy 據界 alone" in `ARCHITECTURE.md` §9.2 and the glossary gets tightened when this is applied.
+- **E2:** refusal-only triggers on `candidate_evidence`. This is **one narrow exception to the additive-only rule**, to be enforced by the migration guard: a trigger on a gateway table is allowed only if its body contains nothing but `RAISE`, so it can abort an illegal update and can never write. The gateway only inserts into this table, so it cannot be affected.
+- **E3:** only a human authority may verify tier-3 evidence.
+
+**What applying it would involve (not done)**
+- The doctrine edits listed above, to `ARCHITECTURE.md`, the four `AGENTS.md` copies and the glossary. That is a doctrine change, and the doctrine sync is otherwise stopped, so it needs your go-ahead.
+- Code (slice 3): a migration for `evidence_records`, refusal-only triggers on `candidate_evidence` behind a stricter migration guard, the promotion and revocation operations, and tests including a sabotage probe for each rule.
+- Prototype scenario 4 changes (a tier-4 record can no longer be bound); the prototype is throwaway and is left as it is unless you want it updated.
+

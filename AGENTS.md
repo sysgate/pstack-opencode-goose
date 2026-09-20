@@ -290,7 +290,7 @@ Evidence may bind to a hyperedge that has a `BOUNDED_AMBIGUOUS` member only unde
 - It covers one binding only, and only the combinations it names.
 - It is recorded as an `AMBIGUITY_ALLOW` receipt and referenced from the evidence binding.
 - When a covered term is narrowed, combinations that no longer match are dropped. The allowance stays in force while a covered term is still ambiguous; once every covered term is narrowed the binding stands as an ordinary one if a granted combination still matches, and is voided if none does.
-- It also lapses when a covered term's set of meanings changes, or when the evidence or hyperedge is revised or revoked.
+- It also lapses when a covered term's set of meanings changes, when its evidence is revoked, or when the hyperedge is revised or revoked.
 - The hyperedge carries the ambiguity in its uncertainty envelope and is projected as `Bounded Ambiguous`.
 - Without a valid allowance the binding is refused and the claim stays `PENDING`.
 - If a lapsed allowance leaves a hyperedge without support, a `PENDING` one stays `PENDING` with `UNSUPPORTED` recorded, and an `ADMITTED` one becomes `CHALLENGED` and is withdrawn from projection.
@@ -385,6 +385,14 @@ Must distinguish:
 - Admitted evidence
 
 Model-generated text is never evidence by itself.
+
+Evidence lifecycle rules:
+
+- Evidence is `CANDIDATE`, `ADMITTED`, `DENIED`, or `REVOKED`. `DENIED` and `REVOKED` are terminal; a retry is a new candidate.
+- A candidate is raw material with provenance. An evidence record exists only through admission and points back at its candidate.
+- Tier 4 (generative) candidates are never admitted and never bound to a hyperedge. Tier 3 (extracted) evidence is admitted only by verification, and in v1 only a human authority may verify.
+- Admission requires the body's canonical-JSON SHA-256 to equal the candidate's stored hash; that hash is sealed in the admission receipt.
+- Revoking admitted evidence voids every binding that uses it; a hyperedge left without support is `CHALLENGED` if it was `ADMITTED`, and stays `PENDING` with `UNSUPPORTED` recorded otherwise.
 
 ### 4. Path Validation Agent
 
@@ -663,6 +671,7 @@ Rules:
 - A record in an admitted-or-later state must have its admission receipt, and every admission receipt must still have its record.
 - A store must offer an integrity check that verifies the receipt chain, the evidence content hashes, and the rule above.
 - Someone who can rewrite the whole database can rebuild the whole receipt chain; tamper-evidence against that needs the latest receipt id kept outside the database (not yet specified).
+- Migrations are additive. A trigger on a table owned by the gateway is allowed only if it can only refuse an illegal change (its body is nothing but a refusal) and never writes.
 
 ---
 
@@ -1066,13 +1075,21 @@ Every CCGF module must include tests for:
 - Evidence binding fails if DSN state is not `NARROWED` or `BOUNDED_AMBIGUOUS` with a valid ambiguity allowance.
 - An ambiguity allowance recorded by a generative-layer actor, or by the actor that proposed the binding, is refused.
 - An ambiguity allowance covers only its own binding and only the combinations it names.
-- An ambiguity allowance lapses when a covered term's set of meanings changes, and when the evidence or hyperedge is revised or revoked.
+- An ambiguity allowance lapses when a covered term's set of meanings changes, when its evidence is revoked, and when the hyperedge is revised or revoked.
 - When a covered term is narrowed, combinations that no longer match are dropped; the binding stands as an ordinary one if a granted combination remains and every covered term is narrowed, and is voided if none remains.
 - A hyperedge left without support by a lapsed allowance stays `PENDING` if it was pending and becomes `CHALLENGED` if it was `ADMITTED`.
 - An evidence binding is never deleted: voiding records a reason and a `REVISION_CLOSE` receipt, and a voided binding does not count for evidence governance.
 - Dismissing a `CONTRADICTS` binding by anyone other than a human authority is refused.
 - A hyperedge with allowance-bound evidence carries the ambiguity in its uncertainty envelope and projects as `Bounded Ambiguous`.
 - `UNRESOLVED`, `CONFLICT`, and `DENIED` terms never take evidence, allowance or not.
+
+### Required Evidence Tests
+
+- A tier 4 (generative) candidate cannot be admitted, and cannot be bound to a hyperedge.
+- A candidate with no body, or whose body no longer matches its stored hash, cannot be admitted.
+- Admitting tier 3 evidence by anyone other than a human authority is refused; the admission receipt records who verified it.
+- `DENIED` and `REVOKED` evidence is never resumed; a retry is a new candidate.
+- Revoking admitted evidence voids every binding that uses it, and leaves an `ADMITTED` hyperedge without support `CHALLENGED`.
 
 ### Required Projection Tests
 

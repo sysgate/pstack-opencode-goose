@@ -126,3 +126,7 @@ Built on `hypergraph-store` (uncommitted): migration 2 (`semantic_objects`), `ob
 - **Object review has no resolution (F12 still open):** the transition table lets an object reach `UNDER_REVIEW` (a DSN conflict does), but nothing resolves it, and the `UNDER_REVIEW -> ADMITTED` edge has no receipt requirement for objects.
 - **Two hooks are deliberately absent until hyperedges exist:** narrowing an admitted bounded term should revalidate the allowance-bound bindings that use it, and revoking an object should challenge the hyperedges that use it.
 
+## D4 refined (2026-09-20)
+
+D4 ("use `candidate_evidence` as the evidence lifecycle") is specified in `proposed-evidence-lifecycle.md`, with decisions E1 (tier 4 is never bindable), E2 (refusal-only triggers on the gateway table, a narrow exception to additive-only) and E3 (only a human verifies tier 3). Doctrine text not yet applied; slice 3 (evidence) waits on that.
+
