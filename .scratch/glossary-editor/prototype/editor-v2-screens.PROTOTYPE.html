@@ -1,0 +1,228 @@
+<!doctype html>
+<!--
+PROTOTYPE, THROWAWAY: wipe me. Ticket "Editor v2 screens".
+Question: where should the new states and actions live in the glossary editor? (revision awaiting verification, removed terms and the
+revoke step, the verify panel with the exact source text, the collisions table, the Remove term action, the next-step lines).
+Three structurally different variants of the SAME editor shell (v1's header, term list and density), switched with ?variant=A|B|C
+or the floating bar at the bottom (or the arrow keys):
+  A  v1 extended:    the term form stays the centre; a "The database" panel below it grows into Load, Verify and Revoke sections.
+  B  inbox first:    a "To do" tab is the landing; one shared command drawer builds whichever action you picked.
+  C  term-centred:   each term is a table of its claims with state, label and reason; a command tray collects ticked terms.
+Everything is a STUB: nothing is written anywhere, commands are only built, never run. Data is a made-up mid-flight scenario.
+Open it by double-clicking the file, or: python3 -m http.server 8790 (in this folder) then http://127.0.0.1:8790/editor-v2-screens.PROTOTYPE.html
+-->
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PROTOTYPE: glossary editor v2 screens</title>
+<style>
+:root{color-scheme:light dark;--bg:#f6f7f9;--panel:#fff;--ink:#1c2128;--muted:#5d6672;--line:#dde1e6;--accent:#2f6fdb;--accent-ink:#fff;--ok:#1a7f4b;--okbg:#e3f5ea;--warn:#8a5a00;--warnbg:#fdf1d6;--bad:#b3261e;--badbg:#fbe4e2;--new:#2f6fdb;--newbg:#e2ebfb;--code:#eef0f3;--add:#c9efd6;--del:#f7cfcb}
+@media (prefers-color-scheme:dark){:root{--bg:#14171b;--panel:#1c2026;--ink:#e6e9ed;--muted:#98a1ad;--line:#2f353d;--accent:#6b9cf0;--accent-ink:#0d1117;--ok:#5fcf8f;--okbg:#17301f;--warn:#e8b64c;--warnbg:#332a12;--bad:#f2837c;--badbg:#3a1d1b;--new:#8ab2f5;--newbg:#1c2a44;--code:#262b33;--add:#1d4a2c;--del:#5a2320}}
+*{box-sizing:border-box}html,body{margin:0;background:var(--bg);color:var(--ink);font:14px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif}
+header{position:sticky;top:0;z-index:5;background:var(--panel);border-bottom:1px solid var(--line);padding:10px 16px;display:flex;gap:12px 20px;align-items:center;flex-wrap:wrap}
+header h1{font-size:16px;margin:0}.chips{display:flex;gap:6px;flex-wrap:wrap;flex:1}.chip{border-radius:999px;padding:2px 10px;font-size:12px;background:var(--code);color:var(--muted)}
+.chip.ok{background:var(--okbg);color:var(--ok)}.chip.warn{background:var(--warnbg);color:var(--warn)}.chip.bad{background:var(--badbg);color:var(--bad)}.chip.new{background:var(--newbg);color:var(--new)}
+main{display:grid;grid-template-columns:minmax(240px,320px) minmax(0,1fr);gap:16px;padding:16px 16px 90px;max-width:1300px;margin:0 auto}main.wide{grid-template-columns:minmax(0,1fr)}
+@media (max-width:820px){main{grid-template-columns:1fr}}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:14px}.stack>*+*{margin-top:16px}
+.item{display:block;width:100%;text-align:left;background:none;border:1px solid transparent;border-radius:8px;padding:5px 8px;color:inherit;cursor:pointer;font:inherit}.item:hover{background:var(--code)}.item.cur{border-color:var(--accent);background:var(--newbg)}
+.item .t{display:flex;justify-content:space-between;gap:8px;font-weight:600}.gl{font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin:12px 0 4px}
+.pill{font-size:11px;font-weight:600;border-radius:999px;padding:0 8px;white-space:nowrap}
+.pill.verified{background:var(--okbg);color:var(--ok)}.pill.unverified,.pill.restored,.pill.revision,.pill.reaffirm{background:var(--warnbg);color:var(--warn)}.pill.new,.pill.drift{background:var(--newbg);color:var(--new)}.pill.removed{background:var(--badbg);color:var(--bad)}
+h2{font-size:14px;margin:0 0 4px}h3{font-size:13px;margin:14px 0 4px}.muted{color:var(--muted)}.hint{color:var(--muted);font-size:12px}.mono{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:12px}
+button,input,textarea{font:inherit;color:inherit}button{border:1px solid var(--line);background:var(--panel);border-radius:8px;padding:6px 12px;cursor:pointer}button.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-ink);font-weight:600}button:disabled{opacity:.45;cursor:not-allowed}button.danger{color:var(--bad);border-color:var(--bad)}
+input[type=text],textarea{width:100%;padding:6px 9px;border:1px solid var(--line);border-radius:8px;background:var(--bg)}textarea{min-height:52px}
+label.blk{display:block;font-weight:600;margin:10px 0 3px}.row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.msg{border-radius:8px;padding:8px 12px;margin-top:10px}.msg.warn{background:var(--warnbg);color:var(--warn)}.msg.bad{background:var(--badbg);color:var(--bad)}.msg.ok{background:var(--okbg);color:var(--ok)}.msg.info{background:var(--newbg);color:var(--new)}
+pre{background:var(--code);border-radius:8px;padding:9px;overflow:auto;font:12px/1.5 ui-monospace,Menlo,Consolas,monospace;margin:6px 0 0;white-space:pre-wrap;word-break:break-word}
+ins{background:var(--add);text-decoration:none;border-radius:3px;padding:0 2px}del{background:var(--del);border-radius:3px;padding:0 2px}
+table{border-collapse:collapse;width:100%}th,td{text-align:left;padding:6px 8px;border-bottom:1px solid var(--line);vertical-align:top}th{font-size:11px;letter-spacing:.05em;text-transform:uppercase;color:var(--muted)}
+.case{border:1px solid var(--line);border-radius:8px;margin-top:10px}.case>summary,.claim>summary{cursor:pointer;padding:8px 10px;list-style:none}.case>summary{font-weight:600;display:flex;gap:8px;align-items:center}
+.claim{border-top:1px solid var(--line)}.claim>summary{display:flex;gap:8px;align-items:baseline;flex-wrap:wrap}.claim .body{padding:0 10px 10px 34px}
+.tabs{display:flex;gap:4px;border-bottom:1px solid var(--line);margin:-4px 0 12px}.tab{border:0;border-bottom:2px solid transparent;border-radius:0;background:none;padding:6px 12px}.tab.cur{border-bottom-color:var(--accent);font-weight:600}
+.cols{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:12px}.card{border:1px solid var(--line);border-radius:10px;padding:12px}.card.sel{border-color:var(--accent);background:var(--newbg)}
+.drawer{position:fixed;left:0;right:0;bottom:48px;background:var(--panel);border-top:2px solid var(--accent);padding:10px 16px;z-index:6;max-height:44vh;overflow:auto}
+.switcher{position:fixed;left:50%;bottom:10px;transform:translateX(-50%);z-index:20;display:flex;gap:10px;align-items:center;background:#111;color:#fff;padding:6px 14px;border-radius:999px;box-shadow:0 4px 18px #0006;font-size:13px}
+.switcher button{background:none;border:0;color:#fff;font-size:16px;padding:0 6px}
+</style>
+</head>
+<body>
+<div id="app"></div>
+<div class="switcher"><button id="prev" aria-label="Previous variant">←</button><span id="vlabel"></span><button id="next" aria-label="Next variant">→</button></div>
+<script>
+"use strict";
+// ------------------------------------------------------------------ made-up scenario (a mid-flight glossary)
+const DB = "~/Projects/chi/hypergraph-db/chi_hypergraph.PROTOTYPE.sqlite3";
+const LABEL = {revision:"Challenged", reaffirm:"Challenged", restored:"Pending Evidence", new:"Pending Evidence", removed:"Challenged", drift:"Admitted", verified:"Admitted"};
+const REASON = {revision:"source text changed; revision awaiting verification", reaffirm:"source text changed; revision awaiting verification", restored:"restored, not yet verified (was revoked on 2026-09-21)", new:"loaded, not yet verified", removed:"no longer in the sources; awaiting revoke", drift:"source changed, not yet loaded", verified:""};
+const PILL = {revision:"revision awaiting verification", reaffirm:"revision awaiting verification", restored:"restored, awaiting verification", new:"loaded, unverified", removed:"removed, withheld", drift:"drift", verified:"verified"};
+const V = "human:robert-lai on 2026-09-20";
+const TERMS = [
+  {name:"Permission gate", ctx:"Permission gate"}, {name:"Signal", ctx:"Permission gate"}, {name:"Threshold", ctx:"Permission gate"},
+  {name:"Fast path", ctx:"Permission gate"}, {name:"Heartbeat", ctx:"Permission gate"},
+  {name:"Scope", ctx:"CCGF hypergraph"}, {name:"Verification", ctx:"CCGF hypergraph"}, {name:"Receipt", ctx:"CCGF hypergraph"}];
+let n = 0;
+const C = (term, what, kase, o = {}) => ({id:"he_" + (++n).toString(16).padStart(4, "0"), cand:"cand_" + (n * 7).toString(16), term, what, kase, oldText:null, newText:null, by:null, ...o});
+const CLAIMS = [
+  C("Permission gate", "definition", "verified", {newText:"The checkpoint that reviews a tool call before it runs.", by:V}),
+  C("Signal", "definition", "drift", {oldText:"One yes/no judgment, expressed as a probability, about a tool call.", newText:"One yes/no judgment, expressed as a probability, about a tool call, such as whether it is destructive.", by:V}),
+  C("Threshold", "definition", "restored", {newText:"The probability at which a signal makes the gate escalate a call. One value applies to every signal in v1.", was:"revoked by human:robert-lai on 2026-09-21: removed by mistake"}),
+  C("Threshold", "avoid: cutoff", "restored", {newText:"_Avoid_: cutoff, limit", was:"revoked by human:robert-lai on 2026-09-21: removed by mistake"}),
+  C("Threshold", "avoid: limit", "restored", {newText:"_Avoid_: cutoff, limit", was:"revoked by human:robert-lai on 2026-09-21: removed by mistake"}),
+  C("Fast path", "definition", "verified", {newText:"The class of tool calls the gate does not judge at all because they are provably local and read-only.", by:V}),
+  C("Fast path", "avoid: whitelist", "revision", {oldText:"_Avoid_: whitelist, allowlist", newText:"_Avoid_: whitelist, allowlist, shortcut", by:V}),
+  C("Fast path", "avoid: allowlist", "revision", {oldText:"_Avoid_: whitelist, allowlist", newText:"_Avoid_: whitelist, allowlist, shortcut", by:V}),
+  C("Fast path", "avoid: shortcut", "new", {newText:"_Avoid_: whitelist, allowlist, shortcut"}),
+  C("Fast path", "collision: fast-path / diagnostic (outside: docs/ARCHITECTURE.md)", "revision", {oldText:"| Fast path | Permission gate | fast-path / diagnostic | outside: docs/ARCHITECTURE.md | a router route CCGF does not define |", newText:"| Fast path | Permission gate | fast-path / diagnostic | outside: docs/ARCHITECTURE.md | a router route for non-governed work that CCGF does not define |", by:V}),
+  C("Heartbeat", "definition", "removed", {oldText:"The entry written when a session starts to show the gate was running; a session without one means the gate was silently off.", by:V}),
+  C("Heartbeat", "avoid: check-in", "removed", {oldText:"_Avoid_: check-in, ping", by:V}),
+  C("Heartbeat", "avoid: ping", "removed", {oldText:"_Avoid_: check-in, ping", by:V}),
+  C("Scope", "definition", "revision", {oldText:"The operational namespace within which a semantic object or hyperedge holds.", newText:"The operational namespace within which a semantic object or hyperedge holds, such as a glossary or a run.", by:V}),
+  C("Verification", "definition", "reaffirm", {oldText:"A human authority's decision that extracted (tier 3) evidence may be admitted, recorded on the admission receipt with who verified it and any note.", newText:"A human authority's decision that extracted (tier 3) evidence may be admitted, recorded on the admission receipt with who verified it and any note.", by:V}),
+  C("Receipt", "definition", "verified", {newText:"The sealed, chained record that one decision was made about a governed object.", by:V}),
+];
+const COLLISIONS = [["Scope","Permission gate","Scope","CCGF hypergraph","a folder tree in the gate, an operational namespace in CCGF"],["Audit log","Permission gate","Receipt","CCGF hypergraph","the gate's audit log is not a CCGF receipt"],["Fast path","Permission gate","fast-path / diagnostic","outside: docs/ARCHITECTURE.md","a router route for non-governed work that CCGF does not define"],["System 1","CCGF hypergraph","System One","outside: TypeSafe","an authority split, not TypeSafe's models"]];
+const RANK = {removed:0, drift:1, revision:2, reaffirm:2, restored:3, new:3, verified:9};
+const termState = t => CLAIMS.filter(c => c.term === t).map(c => c.kase).sort((a, b) => RANK[a] - RANK[b])[0] || "verified";
+const toVerify = () => CLAIMS.filter(c => ["revision", "reaffirm", "restored", "new"].includes(c.kase));
+const toRevoke = () => CLAIMS.filter(c => c.kase === "removed");
+const toLoad = () => CLAIMS.filter(c => c.kase === "drift");
+const esc = s => String(s).replace(/[&<>]/g, m => ({"&":"&amp;","<":"&lt;",">":"&gt;"}[m]));
+const shq = s => "'" + String(s).replace(/'/g, "'\\''") + "'";
+const pill = k => `<span class="pill ${k === "verified" ? "verified" : k}">${PILL[k]}</span>`;
+
+// word diff (tiny LCS): new words marked <ins>, dropped words <del>
+function diff(a, b) {
+  const x = a.split(" "), y = b.split(" "), L = Array.from({length: x.length + 1}, () => Array(y.length + 1).fill(0));
+  for (let i = x.length - 1; i >= 0; i--) for (let j = y.length - 1; j >= 0; j--) L[i][j] = x[i] === y[j] ? L[i+1][j+1] + 1 : Math.max(L[i+1][j], L[i][j+1]);
+  let i = 0, j = 0, out = [];
+  while (i < x.length && j < y.length) { if (x[i] === y[j]) { out.push(esc(x[i])); i++; j++; } else if (L[i+1][j] >= L[i][j+1]) out.push("<del>" + esc(x[i++]) + "</del>"); else out.push("<ins>" + esc(y[j++]) + "</ins>"); }
+  while (i < x.length) out.push("<del>" + esc(x[i++]) + "</del>"); while (j < y.length) out.push("<ins>" + esc(y[j++]) + "</ins>");
+  return out.join(" ");
+}
+async function digest(lines) {
+  const s = lines.slice().sort().join("\n");
+  try { const d = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(s)); return [...new Uint8Array(d)].map(b => b.toString(16).padStart(2, "0")).join("").slice(0, 12); }
+  catch { let h = 2166136261; for (const ch of s) h = Math.imul(h ^ ch.charCodeAt(0), 16777619); return (h >>> 0).toString(16).padStart(8, "0") + "0000"; }
+}
+
+// what one claim looks like, by case (the panel's per-claim body)
+function claimBody(c) {
+  const proj = `<div class="hint">${pill(c.kase)} store: <b>${LABEL[c.kase]}</b>${REASON[c.kase] ? " (" + esc(REASON[c.kase]) + ")" : ""}</div>`;
+  if (c.kase === "revision") return proj + `<div>Old admitted text (verified by ${c.by}) and the new text:</div><pre>${diff(c.oldText, c.newText)}</pre>`;
+  if (c.kase === "reaffirm") return proj + `<div>The text is <b>unchanged</b> since it was verified by ${c.by}. The edit was reverted, so verifying <b>reaffirms</b> the claim.</div><pre>${esc(c.newText)}</pre>`;
+  if (c.kase === "restored") return proj + `<div>Was ${esc(c.was)}. It now says:</div><pre>${esc(c.newText)}</pre>`;
+  if (c.kase === "new") return proj + `<div>New claim. The source says:</div><pre>${esc(c.newText)}</pre>`;
+  if (c.kase === "removed") return proj + `<div>Admitted text being retired (verified by ${c.by}):</div><pre>${esc(c.oldText)}</pre>`;
+  if (c.kase === "drift") return proj + `<div>Saved to the Markdown but not loaded. The store still asserts the old text:</div><pre>${diff(c.oldText, c.newText)}</pre>`;
+  return `<pre>${esc(c.newText)}</pre>`;
+}
+
+// the Remove term flow (stub): the same preview in every variant, placed differently
+function removePreview(term) {
+  const cs = CLAIMS.filter(c => c.term === term).length, col = COLLISIONS.filter(r => r[0] === term || r[2] === term).length;
+  if (col) return `<div class="msg bad"><b>Refused.</b> The collisions table has ${col} row${col > 1 ? "s" : ""} naming “${esc(term)}”. Remove ${col > 1 ? "them" : "it"} first, or the loader will fail loudly.</div>`;
+  return `<div class="msg warn">Removing “${esc(term)}” deletes its block from the Markdown (git keeps the history). ${cs} claim${cs === 1 ? "" : "s"} will then be reported as <b>removed</b> and withheld at the next load. Nothing is revoked until you run the revoke command.<div class="row" style="margin-top:8px"><button class="danger">Remove from the glossary</button><button>Cancel</button></div></div>`;
+}
+
+// command builder (verify or revoke), shared by all variants; selection = set of term names
+async function builder(kind, terms, cases) {
+  const claims = (kind === "verify" ? toVerify() : toRevoke()).filter(c => terms.has(c.term));
+  const d = await digest(claims.map(c => `${c.id}|${kind === "verify" ? c.kase : "removed"}|${c.cand}`));
+  const verb = kind === "verify" ? "verify" : "revoke";
+  return `<div class="hint">Selection: ${[...terms].map(esc).join(", ") || "none"} · ${claims.length} claim${claims.length === 1 ? "" : "s"} · digest <span class="mono">${d}</span> (changes if the text, the selection or a claim's state changes)</div>
+  <div class="row" style="margin-top:6px"><input type="text" id="nm-${kind}" placeholder="your name (no spaces)" style="max-width:220px" aria-label="Your name"><input type="text" id="nt-${kind}" placeholder="What did you review? A real sentence, not a placeholder." aria-label="Note" style="flex:1;min-width:220px"></div>
+  <div class="hint" id="why-${kind}"></div><pre id="cmd-${kind}" data-digest="${d}" data-terms="${esc([...terms].join("\u0001"))}"></pre>
+  <div class="row"><button id="cp-${kind}" disabled>Copy command</button><span class="hint">The page never runs it. Run it yourself in a terminal.</span></div>`;
+}
+function wireBuilder(kind) {
+  const nm = document.getElementById("nm-" + kind), nt = document.getElementById("nt-" + kind), why = document.getElementById("why-" + kind), cmd = document.getElementById("cmd-" + kind), cp = document.getElementById("cp-" + kind);
+  if (!nm) return;
+  const upd = () => {
+    const a = nm.value.trim(), b = nt.value.trim(); let p = null;
+    if (!/^[A-Za-z0-9._-]{2,}$/.test(a)) p = "Your name: letters, digits, dots or dashes only (no spaces)."; else if (b.length < 10 || /^[.…\s]*$/.test(b) || /^(todo|tbd|test|x+)$/i.test(b)) p = "Write what you reviewed; a placeholder is refused (the loader refuses it too).";
+    why.textContent = p || ""; cp.disabled = !!p;
+    const terms = cmd.dataset.terms ? cmd.dataset.terms.split("\u0001").filter(Boolean) : [];
+    cmd.textContent = p ? "" : `glossary ${kind} --db ${DB} --by ${shq("human:" + a)} --note ${shq(b)} ${terms.map(t => "--term " + shq(t)).join(" ")} --confirm ${cmd.dataset.digest}`;
+  };
+  nm.oninput = nt.oninput = upd; upd();
+}
+
+// ------------------------------------------------------------------ shared shell (v1's header, chips, term list)
+const sel = {A:new Set(toVerify().map(c => c.term)), B:new Set(toVerify().map(c => c.term)), C:new Set()}, selRev = new Set(toRevoke().map(c => c.term));
+let cur = "Scope", tab = "todo", removing = null;
+const chips = () => `<div class="chips"><span class="chip">${CLAIMS.length} claims</span><span class="chip ok">${CLAIMS.filter(c => c.kase === "verified").length} verified</span><span class="chip new">${toLoad().length} to load</span><span class="chip warn">${toVerify().length} to verify</span><span class="chip bad">${toRevoke().length} removed, withheld</span></div>`;
+const header = () => `<header><h1>CHI glossary editor</h1>${chips()}<button>Refresh</button></header>`;
+const termList = () => `<div class="panel"><div class="row"><input type="text" placeholder="Search terms…" style="flex:1"><button class="primary">+ New</button></div>${["Permission gate", "CCGF hypergraph"].map(ctx => `<div class="gl">${ctx}</div>${TERMS.filter(t => t.ctx === ctx).map(t => `<button class="item ${t.name === cur ? "cur" : ""}" data-term="${esc(t.name)}"><span class="t"><span>${esc(t.name)}</span>${pill(termState(t.name))}</span></button>`).join("")}`).join("")}<div class="gl">Collisions</div><button class="item ${cur === "__col" ? "cur" : ""}" data-term="__col"><span class="t"><span>Collisions table</span><span class="pill revision">1 to verify</span></span></button></div>`;
+const termForm = t => { const cl = CLAIMS.filter(c => c.term === t); return `<div class="panel"><div class="row" style="justify-content:space-between"><h2>Edit “${esc(t)}”</h2><button class="danger" data-remove="${esc(t)}">Remove term…</button></div>${removing === t ? removePreview(t) : ""}<label class="blk">Term</label><input type="text" value="${esc(t)}" readonly><label class="blk">Definition</label><textarea readonly>${esc((cl.find(c => c.what === "definition") || {}).newText || (cl.find(c => c.what === "definition") || {}).oldText || "")}</textarea><p class="hint">(the term form is unchanged from v1; this prototype is about the new states and actions)</p></div>`; };
+const collisionsTable = () => `<div class="panel"><div class="row" style="justify-content:space-between"><h2>Collisions</h2><button class="primary">+ Add a pair</button></div><p class="hint">One row per pair in <span class="mono">CONTEXT-MAP.md</span>. The row is each claim's evidence.</p><table><tr><th>Term</th><th>In</th><th>Must not be confused with</th><th>In</th><th>Why</th><th></th></tr>${COLLISIONS.map(r => `<tr><td>${esc(r[0])}</td><td>${esc(r[1])}</td><td>${esc(r[2])}</td><td>${esc(r[3])}</td><td>${esc(r[4])}</td><td>${r[0] === "Fast path" ? pill("revision") : pill("verified")}</td></tr>`).join("")}</table></div>`;
+
+// ------------------------------------------------------------------ variant A: v1 extended (panels below the form)
+async function verifyPanel(v) {
+  const groups = [["revision", "Revisions"], ["reaffirm", "Reaffirms (the edit was reverted)"], ["restored", "Restored (revoked earlier, back in the sources)"], ["new", "New claims"]];
+  const terms = [...new Set(toVerify().map(c => c.term))];
+  return `<div class="hint">${groups.map(([k, t]) => toVerify().filter(c => c.kase === k).length + " " + t.toLowerCase().replace(/ \(.*/, "")).join(" · ")}</div>
+  <div class="row" style="margin:8px 0">${terms.map(t => `<label><input type="checkbox" data-pick="${v}" value="${esc(t)}" ${sel[v].has(t) ? "checked" : ""}> ${esc(t)} <span class="muted">(${toVerify().filter(c => c.term === t).length})</span></label>`).join("")}</div>
+  ${groups.map(([k, t]) => { const cs = toVerify().filter(c => c.kase === k); return cs.length ? `<details class="case" ${k === "revision" ? "open" : ""}><summary>${pill(k)} ${t} <span class="muted">${cs.length}</span></summary>${cs.map(c => `<details class="claim"><summary><input type="checkbox" disabled ${sel[v].has(c.term) ? "checked" : ""}><b>${esc(c.term)}</b> <span class="muted">${esc(c.what)}</span></summary><div class="body">${claimBody(c)}</div></details>`).join("")}</details>` : ""; }).join("")}
+  <h3>Command</h3>${await builder("verify", sel[v])}`;
+}
+async function variantA() {
+  const main = cur === "__col" ? collisionsTable() : termForm(cur);
+  const db = `<div class="panel"><h2>The database</h2><div class="hint">${DB}</div>
+    ${toLoad().length ? `<div class="msg info"><b>Load</b> · ${toLoad().length} saved change is not loaded (Signal). <div class="row" style="margin-top:6px"><button class="primary">Load into the database</button><span class="hint">Next step: load. Loading withholds the old claim and adds the new text as a candidate.</span></div></div>` : ""}
+    <div class="msg warn"><b>Verify</b> · ${toVerify().length} claims across ${new Set(toVerify().map(c => c.term)).size} terms are waiting for a human. Next step: verify.</div>${await verifyPanel("A")}
+    <div class="msg bad" style="margin-top:16px"><b>Removed from the sources</b> · ${toRevoke().length} claims (Heartbeat) are withheld, awaiting revoke. Next step: revoke.</div>
+    <div style="margin-top:8px">${toRevoke().map(c => `<details class="claim"><summary><b>${esc(c.term)}</b> <span class="muted">${esc(c.what)}</span></summary><div class="body">${claimBody(c)}</div></details>`).join("")}</div>
+    <h3>Command</h3>${await builder("revoke", selRev)}</div>`;
+  return `${header()}<main>${termList()}<div class="stack">${main}${db}</div></main>`;
+}
+
+// ------------------------------------------------------------------ variant B: inbox first (a To do tab and one command drawer)
+let pick = "verify";
+async function variantB() {
+  const tabs = `<div class="tabs">${[["todo", "To do (" + (toLoad().length + toVerify().length + toRevoke().length) + ")"], ["terms", "Terms"], ["col", "Collisions"]].map(([k, t]) => `<button class="tab ${tab === k ? "cur" : ""}" data-tab="${k}">${t}</button>`).join("")}</div>`;
+  let body;
+  if (tab === "todo") body = `<div class="cols">
+    <div class="card ${pick === "load" ? "sel" : ""}"><h2>1 to load</h2><p class="hint">Saved to the Markdown, not yet loaded: Signal (definition).</p><button class="primary" data-pick="load">Load…</button></div>
+    <div class="card ${pick === "verify" ? "sel" : ""}"><h2>${toVerify().length} to verify</h2><p class="hint">${["revision", "reaffirm", "restored", "new"].map(k => toVerify().filter(c => c.kase === k).length + " " + PILL[k]).join(" · ")}</p><button class="primary" data-pick="verify">Review and verify…</button></div>
+    <div class="card ${pick === "revoke" ? "sel" : ""}"><h2>${toRevoke().length} to revoke</h2><p class="hint">Removed from the sources and withheld: Heartbeat (whole term).</p><button class="primary" data-pick="revoke">Review and revoke…</button></div></div>
+    <div class="panel" style="margin-top:16px">${pick === "verify" ? `<h2>Verify</h2>${["revision", "reaffirm", "restored", "new"].map(k => { const cs = toVerify().filter(c => c.kase === k); return cs.length ? `<h3>${pill(k)}</h3>${cs.map(c => `<details class="claim"><summary><input type="checkbox" data-pick2 value="${esc(c.term)}" ${sel.B.has(c.term) ? "checked" : ""}><b>${esc(c.term)}</b> <span class="muted">${esc(c.what)}</span></summary><div class="body">${claimBody(c)}</div></details>`).join("")}` : ""; }).join("")}` : pick === "revoke" ? `<h2>Revoke</h2>${toRevoke().map(c => `<details class="claim" open><summary><b>${esc(c.term)}</b> <span class="muted">${esc(c.what)}</span></summary><div class="body">${claimBody(c)}</div></details>`).join("")}` : `<h2>Load</h2><pre>${diff(toLoad()[0].oldText, toLoad()[0].newText)}</pre><p class="hint">The page runs load itself (it admits nothing).</p><button class="primary">Load into the database</button>`}</div>`;
+  else if (tab === "terms") body = `<div class="row" style="align-items:flex-start;gap:16px"><div style="width:280px">${termList()}</div><div style="flex:1" class="stack">${termForm(cur === "__col" ? "Scope" : cur)}</div></div>`;
+  else body = collisionsTable();
+  const drawer = tab === "todo" && pick !== "load" ? `<div class="drawer"><b>${pick === "verify" ? "Verify" : "Revoke"} command</b> ${await builder(pick, pick === "verify" ? sel.B : selRev)}</div>` : "";
+  return `${header()}<main class="wide"><div class="panel">${tabs}${body}</div></main>${drawer}`;
+}
+
+// ------------------------------------------------------------------ variant C: term-centred (a table of claims per term, a command tray)
+async function variantC() {
+  const t = cur === "__col" ? "Fast path" : cur, cl = CLAIMS.filter(c => c.term === t), acts = ["revision", "reaffirm", "restored", "new"].some(k => cl.some(c => c.kase === k)), rem = cl.some(c => c.kase === "removed");
+  const page = `<div class="panel"><div class="row" style="justify-content:space-between"><div><h2>${esc(t)} <span class="muted">· ${esc(TERMS.find(x => x.name === t).ctx)}</span></h2>${pill(termState(t))}</div><div class="row">${acts ? `<label><input type="checkbox" data-tray value="${esc(t)}" ${sel.C.has(t) ? "checked" : ""}> add to the verify tray</label>` : ""}${rem ? `<button class="danger" data-trayrev>Add to the revoke tray</button>` : ""}<button class="danger" data-remove="${esc(t)}">Remove term…</button></div></div>${removing === t ? removePreview(t) : ""}
+    <table style="margin-top:10px"><tr><th>Claim</th><th>State</th><th>Store says</th><th>Next step</th></tr>${cl.map(c => `<tr><td><details><summary><b>${esc(c.what)}</b></summary><div style="padding:6px 0">${claimBody(c)}</div></details></td><td>${pill(c.kase)}</td><td><b>${LABEL[c.kase]}</b>${REASON[c.kase] ? "<br><span class=hint>" + esc(REASON[c.kase]) + "</span>" : ""}</td><td class="hint">${{drift:"load", revision:"verify", reaffirm:"verify", restored:"verify", new:"verify", removed:"revoke", verified:"—"}[c.kase]}</td></tr>`).join("")}</table>
+    <p class="hint">Collisions naming this term: ${COLLISIONS.filter(r => r[0] === t || r[2] === t).map(r => esc(r[0] + " ≠ " + r[2])).join("; ") || "none"}.</p></div>`;
+  const tray = sel.C.size || selRev.size ? `<div class="drawer"><b>Command tray</b> <span class="hint">terms you ticked on their pages</span>${sel.C.size ? "<h3>Verify</h3>" + await builder("verify", sel.C) : ""}</div>` : "";
+  return `${header()}<main>${termList()}<div class="stack">${cur === "__col" ? collisionsTable() : ""}${page}</div></main>${tray}`;
+}
+
+// ------------------------------------------------------------------ switcher and wiring
+const VARIANTS = {A:["A", "v1 extended: panels below the form", variantA], B:["B", "inbox first: To do tab and command drawer", variantB], C:["C", "term-centred: claim tables and a command tray", variantC]};
+const keys = Object.keys(VARIANTS);
+let variant = new URLSearchParams(location.search).get("variant") || "A"; if (!VARIANTS[variant]) variant = "A";
+async function render() {
+  const [k, name, fn] = VARIANTS[variant]; document.getElementById("vlabel").textContent = `${k} (${name})`;
+  document.getElementById("app").innerHTML = await fn();
+  document.querySelectorAll("[data-term]").forEach(b => b.onclick = () => { cur = b.dataset.term; removing = null; if (variant === "B") tab = "terms"; render(); });
+  document.querySelectorAll("[data-remove]").forEach(b => b.onclick = () => { removing = removing === b.dataset.remove ? null : b.dataset.remove; render(); });
+  document.querySelectorAll("[data-tab]").forEach(b => b.onclick = () => { tab = b.dataset.tab; render(); });
+  document.querySelectorAll("button[data-pick]").forEach(b => b.onclick = () => { pick = b.dataset.pick; render(); });
+  document.querySelectorAll("input[data-pick]").forEach(b => b.onchange = () => { b.checked ? sel[b.dataset.pick].add(b.value) : sel[b.dataset.pick].delete(b.value); render(); });
+  document.querySelectorAll("input[data-pick2]").forEach(b => b.onchange = () => { b.checked ? sel.B.add(b.value) : sel.B.delete(b.value); render(); });
+  document.querySelectorAll("input[data-tray]").forEach(b => b.onchange = () => { b.checked ? sel.C.add(b.value) : sel.C.delete(b.value); render(); });
+  wireBuilder("verify"); wireBuilder("revoke");
+}
+function go(d) { variant = keys[(keys.indexOf(variant) + d + keys.length) % keys.length]; history.replaceState(null, "", "?variant=" + variant); render(); }
+document.getElementById("prev").onclick = () => go(-1); document.getElementById("next").onclick = () => go(1);
+addEventListener("keydown", e => { if (/^(INPUT|TEXTAREA)$/.test(document.activeElement.tagName) || document.activeElement.isContentEditable) return; if (e.key === "ArrowLeft") go(-1); if (e.key === "ArrowRight") go(1); });
+render();
+</script>
+</body>
+</html>
