@@ -21,10 +21,13 @@ accepted doctrine, extracted (tier 3) evidence is admitted only by a human. Its 
 `candidate_evidence` link), so queries written against one will not run against the other. If you see 222 objects or 256 claims, you
 are looking at the old one.
 
-## State right now: loaded; 267 of 281 claims VERIFIED, 14 waiting for a human
+## State right now: loaded and VERIFIED (all 281 claims)
 
-267 claims are `ADMITTED` and assertable. The other **14 are `PENDING`** (loaded 2026-09-20): the definition, group and avoid claims of five terms added to the CCGF glossary that day (*Successor*, *Predecessor*, *Outside usage*, *Drift*, *Withheld*). They are not asserted until a human verifies them (`define` says "not verified yet"). Integrity is clean (1,558 receipts) and the anchor agrees.
+All 281 claims are `ADMITTED` and assertable. Integrity is clean (1,600 receipts) and the anchor agrees.
 
+* **14 claims** (receipts 1559 to 1598, 2026-09-20): the definition, group and avoid claims of five terms added to the CCGF glossary that day
+  (*Successor*, *Predecessor*, *Outside usage*, *Drift*, *Withheld*), verified by `human:robert-lai` at the user's direction, run by Claude, with a
+  real note that says so.
 * **264 claims**, verified 2026-09-20 by `human:robert-lai` with the note "reviewed the CHI glossaries on 2026-09-20" (recorded on the
   admission receipts, tier 3, sealed with the content hash). That run was made at Robert Lai's direction after his own attempt hit a shell
   quoting error; the name has no space (`human:robert-lai`) so it is easy to search.
