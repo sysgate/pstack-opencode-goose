@@ -46,7 +46,7 @@ Settled with the user across two grilling rounds; every recommendation was accep
 **Verify (the human step, `--by human:NAME --note "..."`), one transaction per claim, three cases**
 - **New claim** (loaded, unverified): as today.
 - **Revision** (the current claim is challenged and a candidate exists for the current text): as the human, begin review, resolve as revised (with the note), close the old claim; then reopen a **successor** that names it as its predecessor; set its uncertainty explicitly (so it carries an uncertainty receipt like every other claim); admit the new evidence (human, with the note); bind it; admit the successor.
-- **Revert** (the current text matches evidence that is still admitted and bound to the challenged claim): as the human, begin review and **reaffirm**. Reaffirming makes the store more assertive, so it is a human step.
+- **Revert** (the current text matches evidence that is still admitted and bound to the challenged claim): as the human, begin review and **reaffirm**. A removed entry that is put back while its claim is still challenged is reaffirmed the same way. Reaffirming makes the store more assertive, so it is a human step.
 - **Actors:** the human named by `--by` for begin review, revise, close, reaffirm and the evidence admit, so the receipts say who made it final; `sys:adjudicator` for the mechanical steps (reopen, uncertainty, bind, admit the successor).
 - **Per claim, not per term.** A partial result is legal because unverified revisions stay withheld. The report says what succeeded and what did not, and lists a claim as verified only after its transaction has committed.
 - The **old evidence is left admitted**: it is an accurate record of what the source said then; revoking would say it was wrong. (This is also why a revert can be reaffirmed.)
@@ -57,7 +57,8 @@ Settled with the user across two grilling rounds; every recommendation was accep
 - **loaded, unverified** (a new claim)
 - **revision awaiting verification** (the old claim is challenged, the new text pending)
 - **verified**
-- **needs attention** (the current claim is revoked, denied, or in another state the loader did not expect)
+- **restored, awaiting verification** (a revoked or denied claim whose statement is back in the sources; see [Removal and revoke](04-removal-and-revoke.md))
+- **needs attention** (a state the loader never produces)
 
 Claims in the store that are no longer in the sources are reported separately, by [Removal and revoke](04-removal-and-revoke.md).
 

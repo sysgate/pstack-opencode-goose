@@ -12,3 +12,5 @@ While a term's revision awaits verification (its old claim is challenged), and a
 - Should the lint hook say anything when it stays quiet about a withheld term, or only ever advise, never explain?
 - Should the editor's list mirror the same wording, so a person sees the same state in every place?
 - What is the exact wording, using the words **term**, **revise** and **revoke**?
+
+Facts from [Revise mechanics](03-revise-mechanics.md) and [Removal and revoke](04-removal-and-revoke.md): the states in which a term's claims are withheld and `define` and the lint hook fall silent are now several: a **revision awaiting verification**, **removed and withheld** (awaiting revoke), **revoked or denied**, and **restored, awaiting verification**. Decide whether the wording distinguishes them or says only "withheld", and which of them the person can act on.

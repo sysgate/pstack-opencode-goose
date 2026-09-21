@@ -18,3 +18,4 @@ Facts from [Revise mechanics](03-revise-mechanics.md) that these decisions must 
 - `verify` now handles **three cases** per claim: a new claim, a revision (the old claim is challenged and a successor is created), and a revert (a reaffirm). The panel should say which case each pending claim is, and for a revision show the old admitted text next to the new.
 - `verify` runs one transaction per claim and reports per claim; the panel should show what succeeded and what did not.
 - The human named by `--by` becomes the actor on the revise, close and reaffirm receipts, so the note should say what was reviewed for the whole set.
+- From [Removal and revoke](04-removal-and-revoke.md): `verify` also handles a **fourth case**, a *restored* claim (a successor reopened from a revoked or denied claim), and a put-back entry is another **reaffirm**. Load now also withholds *removed* claims, so the panel may meet challenged claims that need a reaffirm and not a revision.
