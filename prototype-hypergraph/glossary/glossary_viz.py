@@ -1,10 +1,14 @@
 #!/usr/bin/env python3
 """Render the CHI glossary hypergraph as ONE self-contained HTML page (offline, no server).
 
-    python3 glossary_viz.py                 # reads chi-glossary.PROTOTYPE-rebuildable.sqlite3, writes chi-glossary-hypergraph.html
+    python3 glossary_viz.py                 # reads ../../hypergraph-db/chi_hypergraph.PROTOTYPE.sqlite3, writes chi-glossary-hypergraph.html
     python3 glossary_viz.py --out /tmp/g.html
+    python3 glossary_viz.py --db chi-glossary.PROTOTYPE-rebuildable.sqlite3   # the old, frozen prototype store
 
-The store is opened READ-ONLY. Rebuild it first with `python3 glossary_load.py --rebuild` if the Markdown changed.
+The default is the current store described in hypergraph-db/README.md ("Which store is which"). It is opened READ-ONLY,
+so it is safe while another session is writing to it. The page is a SNAPSHOT: it does not follow later changes. To pick
+up new glossary entries, rebuild that store from the Markdown (see hypergraph-db/README.md), then run this script again.
+The page header shows which store it came from and when it was generated.
 
 Rendering: a hypergraph cannot be drawn by an ordinary graph library directly, so each hyperedge (a CLAIM) becomes its
 own small diamond node joined to its members: SUBJECT -> claim -> OBJECT, plus a dashed CONDITION link when the claim
@@ -18,6 +22,7 @@ absolute paths are reduced to file names.
 from __future__ import annotations
 
 import argparse
+import datetime
 import hashlib
 import json
 import os
@@ -27,7 +32,7 @@ import sys
 import urllib.request
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-DEFAULT_DB = os.path.join(HERE, "chi-glossary.PROTOTYPE-rebuildable.sqlite3")
+DEFAULT_DB = os.path.normpath(os.path.join(HERE, "..", "..", "hypergraph-db", "chi_hypergraph.PROTOTYPE.sqlite3"))
 DEFAULT_OUT = os.path.join(HERE, "chi-glossary-hypergraph.html")
 CACHE_DIR = os.path.join(HERE, ".viz-cache")
 CYTOSCAPE_VERSION = "3.30.2"
@@ -109,7 +114,9 @@ def export(db_path: str) -> dict:
         for m in c["members"]:
             if m["node"] not in known:
                 sys.exit(f"ABORT: claim {c['id']} names an unknown object {m['node']}")
-    return {"objects": list(objects.values()), "claims": claims, "receipts": {"count": chain["n"], "head_seq": chain["head"]}}
+    return {"objects": list(objects.values()), "claims": claims, "receipts": {"count": chain["n"], "head_seq": chain["head"]},
+            "store": os.path.basename(db_path),
+            "generated": datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%d %H:%M UTC")}
 
 
 def render(data: dict, library: str) -> str:
@@ -125,7 +132,8 @@ def main() -> int:
     ap.add_argument("--out", default=DEFAULT_OUT)
     args = ap.parse_args()
     if not os.path.isfile(args.db):
-        sys.exit(f"store not found: {args.db}\nBuild it with: python3 glossary_load.py --rebuild")
+        sys.exit(f"store not found: {args.db}\nThe current store is built as described in hypergraph-db/README.md "
+                 f"(the old prototype store: python3 glossary_load.py --rebuild, then pass it with --db).")
     data = export(args.db)
     leftover = ABS_PATH.search(json.dumps(data, ensure_ascii=False))
     if leftover:
@@ -187,6 +195,7 @@ aside h2:first-child{margin-top:0}
   <input id="q" type="search" placeholder="Search terms, aliases, contexts…" aria-label="Search the glossary">
   <button id="relayout" type="button">Re-layout</button>
   <button id="fit" type="button">Fit</button>
+  <span class="stats" id="snap" style="flex-basis:100%"></span>
 </header>
 <div id="cy" role="img" aria-label="Glossary hypergraph: terms, contexts and groups joined through claim nodes"></div>
 <aside>
@@ -205,10 +214,10 @@ aside h2:first-child{margin-top:0}
 <script>
 "use strict";
 const DATA = /*__DATA__*/{};
-const OBJ_COLORS = {"Term":"#4e79a7","Avoided alias":"#f28e2b","Avoid note":"#b07aa1","Context":"#59a14f","Glossary group":"#e15759","Predicate":"#9c9c9c"};
+const OBJ_COLORS = {"Term":"#4e79a7","Avoided alias":"#f28e2b","Avoid note":"#b07aa1","Context":"#59a14f","Glossary group":"#e15759","Outside usage":"#76b7b2","Predicate":"#9c9c9c"};
 const OBJ_SHAPE = {"Context":"round-rectangle","Glossary group":"round-hexagon","Predicate":"round-tag"};
 const PRED_COLORS = {"is defined in":"#1b9e77","belongs to group":"#7570b3","is avoided in favour of":"#d95f02","must not be confused with":"#e7298a"};
-const SCOPE_STYLE = {"CCGF hypergraph":{style:"solid",width:3,name:"CCGF hypergraph"},"Permission gate":{style:"dashed",width:3,name:"Permission gate"},"platform-glossary":{style:"solid",width:0,name:"Platform glossary (contexts, groups, predicates)"}};
+const SCOPE_STYLE = {"CCGF hypergraph":{style:"solid",width:3,name:"CCGF hypergraph"},"Permission gate":{style:"dashed",width:3,name:"Permission gate"},"platform-glossary":{style:"solid",width:0,name:"Platform glossary (contexts, groups, predicates)"},"other":{style:"dotted",width:3,name:"Other scope (outside usage, named elsewhere)"}};
 const ROLE_ORDER = {"SUBJECT":0,"PREDICATE":1,"OBJECT":2,"CONDITION":3};
 const hidden = new Set(["Predicate"]);      // predicate hubs are drawn only on request
 const byId = Object.fromEntries(DATA.objects.map(o => [o.id, o]));
@@ -235,6 +244,7 @@ function styleSheet(){
     {selector:'node[type = "Predicate"]',style:{"width":24,"height":14,"font-size":9}},
     {selector:'node[scope = "CCGF hypergraph"][kind = "object"]',style:{"border-width":3,"border-style":"solid","border-color":ink}},
     {selector:'node[scope = "Permission gate"][kind = "object"]',style:{"border-width":3,"border-style":"dashed","border-color":ink}},
+    {selector:'node[kind = "object"][scope != "CCGF hypergraph"][scope != "Permission gate"][scope != "platform-glossary"]',style:{"border-width":3,"border-style":"dotted","border-color":ink}},
     {selector:'node[kind = "claim"]',style:{"shape":"diamond","width":11,"height":11,"label":"","background-color":ele => PRED_COLORS[ele.data("predicate")]||"#777","border-width":0}},
     {selector:"edge",style:{"width":1,"line-color":edge,"curve-style":"bezier","opacity":.75}},
     {selector:'edge[role = "OBJECT"]',style:{"target-arrow-shape":"triangle","target-arrow-color":edge,"arrow-scale":.7}},
@@ -262,6 +272,7 @@ function visibleSet(){
   });
 }
 function layout(){
+  cy.resize();
   const vis = cy.elements(":visible");
   vis.layout({name:"cose",animate:false,randomize:true,nodeRepulsion:() => 14000,idealEdgeLength:() => 46,edgeElasticity:() => 90,gravity:.9,numIter:1800,nodeOverlap:8,padding:30}).run();
   cy.fit(vis, 30);
@@ -270,6 +281,7 @@ function refresh(){ visibleSet(); layout(); }
 
 // ---------- legend, filters, stats ----------
 const counts = {}; DATA.objects.forEach(o => counts[o.type] = (counts[o.type]||0) + 1);
+for (const t of Object.keys(counts)) if (!(t in OBJ_COLORS)) OBJ_COLORS[t] = "#bab0ac";   // unknown type: neutral colour, still listed
 const sw = (cls, bg, extra="") => `<span class="sw ${cls}" style="background:${bg};${extra}"></span>`;
 document.getElementById("legend-objects").innerHTML = Object.keys(OBJ_COLORS).map(t =>
   `<div class="row">${sw(t==="Context"||t==="Glossary group"?"hex":"",OBJ_COLORS[t])}<span>${t}</span><span class="note">${counts[t]||0}</span></div>`).join("");
@@ -277,12 +289,14 @@ const predCounts = {}; DATA.claims.forEach(c => predCounts[c.predicate] = (predC
 document.getElementById("legend-claims").innerHTML = Object.entries(PRED_COLORS).map(([p,col]) =>
   `<div class="row">${sw("diamond",col)}<span>${p}</span><span class="note">${predCounts[p]||0}</span></div>`).join("");
 document.getElementById("legend-scope").innerHTML = Object.values(SCOPE_STYLE).map(s =>
-  `<div class="row"><span class="sw" style="background:transparent;border:${s.width?s.width:1}px ${s.style==="dashed"?"dashed":"solid"} ${s.width?"currentColor":"var(--line)"}"></span><span>${s.name}</span></div>`).join("");
-document.getElementById("filters").innerHTML = ["Term","Avoided alias","Avoid note","Context","Glossary group","Predicate","claim"].map(t => {
-  const label = t==="claim" ? "Claim diamonds" : (t==="Predicate" ? "Predicate hubs (noisy)" : t+"s");
+  `<div class="row"><span class="sw" style="background:transparent;border:${s.width?s.width:1}px ${s.style} ${s.width?"currentColor":"var(--line)"}"></span><span>${s.name}</span></div>`).join("");
+const FILTER_LABEL = {"Term":"Terms","Avoided alias":"Avoided aliases","Avoid note":"Avoid notes","Context":"Contexts","Glossary group":"Glossary groups","Outside usage":"Outside usages","Predicate":"Predicate hubs (noisy)","claim":"Claim diamonds"};
+document.getElementById("filters").innerHTML = [...Object.keys(OBJ_COLORS).filter(t => counts[t]), "claim"].map(t => {
+  const label = FILTER_LABEL[t] || t;
   return `<label class="row"><input type="checkbox" data-t="${t}" ${hidden.has(t)?"":"checked"}><span>${label}</span></label>`; }).join("");
 document.getElementById("filters").addEventListener("change", e => { const t = e.target.dataset.t; e.target.checked ? hidden.delete(t) : hidden.add(t); refresh(); });
 document.getElementById("stats").textContent = `${DATA.objects.length} objects · ${DATA.claims.length} claims · ${DATA.claims.reduce((n,c)=>n+c.members.length,0)} memberships · receipt chain head #${DATA.receipts.head_seq}`;
+document.getElementById("snap").textContent = `Snapshot of ${DATA.store}, generated ${DATA.generated}. It does not update by itself: rebuild the store, then run glossary_viz.py again.`;
 document.getElementById("explain").textContent = "Every claim is a hyperedge: subject → claim → object (dashed 'when' link for a condition). The claim's predicate is the diamond's colour. Contexts and groups anchor the clusters.";
 
 // ---------- interaction ----------
@@ -322,6 +336,8 @@ q.addEventListener("input", () => {
 q.addEventListener("keydown", e => { if (e.key === "Escape") { q.value = ""; clearFocus(); } });
 document.getElementById("relayout").addEventListener("click", layout);
 document.getElementById("fit").addEventListener("click", () => cy.fit(cy.elements(":visible"), 30));
+new ResizeObserver(() => cy.resize()).observe(document.getElementById("cy"));
+window.addEventListener("load", () => { cy.resize(); cy.fit(cy.elements(":visible"), 30); });
 matchMedia("(prefers-color-scheme: dark)").addEventListener("change", () => cy.style(styleSheet()));
 refresh();
 window.__ready = true;
