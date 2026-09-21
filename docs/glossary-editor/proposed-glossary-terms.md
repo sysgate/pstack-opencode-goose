@@ -1,6 +1,6 @@
 # Proposed glossary and doctrine text for the glossary editor v2
 
-Status: **PROPOSED, NOT APPLIED.** Nothing in `docs/ccgf/CONTEXT.md`, `AGENTS.md`, `docs/ARCHITECTURE.md` or `CONTEXT-MAP.md` has been changed. Each block below is text for the user to accept, edit or reject; it is applied only with the user's go-ahead, and then through the glossary editor and the doctrine sync, not by hand. It belongs to [the v2 specification](SPEC.md). The user asked (2026-09-20) for **Withheld** to be included with the other four; the set as a whole is still proposed.
+Status: **section 1 (the five glossary entries) was APPLIED on 2026-09-20** to `docs/ccgf/CONTEXT.md` through the glossary editor's save path, at the user's go-ahead; each entry sits at the end of its group (the editor cannot place an entry beside another). **Section 2 (the doctrine paragraph) is still PROPOSED, NOT APPLIED**, and `AGENTS.md`, `docs/ARCHITECTURE.md` and `CONTEXT-MAP.md` have not been changed. The five entries are in the sources but **not yet loaded into the hypergraph**: `status` shows 20 claims not loaded until someone runs `load`, and they are not asserted until a human verifies them. Each block below is text for the user to accept, edit or reject; it is applied only with the user's go-ahead, and then through the glossary editor and the doctrine sync, not by hand. It belongs to [the v2 specification](SPEC.md). The user asked (2026-09-20) for **Withheld** to be included with the other four; the set as a whole is still proposed.
 
 ## 1. Glossary terms for `docs/ccgf/CONTEXT.md`
 
@@ -11,11 +11,9 @@ Format matches the file: `**Term**:`, one paragraph, then `_Avoid_:`. The propos
 ```
 **Successor**:
 The claim that replaces an earlier one by naming it as its predecessor, raised after that claim was revised, revoked or denied. It starts pending and must earn its admission again; the earlier one is never resumed.
-_Avoid_: new version, replacement
 
 **Predecessor**:
 An earlier hyperedge or semantic object that a later one names in its lineage. It is terminal, and is never resumed.
-_Avoid_: old version, previous version
 
 **Outside usage**:
 A phrase quoted from somewhere no glossary defines, such as a diagram label or another product's term, recorded only so that a defined term can be kept apart from it. It is never a term and asserts nothing about its own meaning.
@@ -27,7 +25,7 @@ _Avoid_: external term, foreign term
 ```
 **Drift**:
 A change to a glossary source that has been saved but not yet loaded, so the store still asserts the earlier text. It ends when load withholds the claim. It is a relation between a source and the store, not an admission state.
-_Avoid_: stale, out of sync
+_Avoid_: out of sync
 ```
 
 **Group "Boundaries and the chain"**, included at the user's request (the loader's messages use the word and no glossary defines it):
@@ -35,12 +33,13 @@ _Avoid_: stale, out of sync
 ```
 **Withheld**:
 Not asserted: a claim that is not admitted, or that is admitted but fails the integrity check. A projection never shows a withheld claim as knowledge, and the reader says why.
-_Avoid_: hidden, suppressed
+_Avoid_: suppressed
 ```
 
 Notes:
 - These five are the words the v2 specification uses that no glossary defines. Each was checked against both glossaries for a clash; "successor" and "predecessor" complete the lineage vocabulary (the glossary already says "the ids of its predecessors").
 - "Drift" is deliberately narrow: an edit saved but not yet loaded. A claim that load has already withheld is *challenged*, an existing admission state.
+- **Trimmed after applying (2026-09-20):** the ordinary-English avoid words the first draft carried (replacement, hidden, stale, new version, old version, previous version) were removed, because once the entries are verified the lint hook would have advised on them in everyday prose. **Successor** and **Predecessor** are therefore the first two entries in the file with no `_Avoid_` line (the loader and the editor handle that). The blocks above show the entries as they now stand. Kept, as rarer: external term, foreign term, out of sync, suppressed.
 - Applying these adds entries to `docs/ccgf/CONTEXT.md`; the new claims are then loaded and verified through the editor like any other new term.
 
 ## 2. Doctrine text for `docs/ARCHITECTURE.md` section 9.2 (and the matching `AGENTS.md` bullets)
