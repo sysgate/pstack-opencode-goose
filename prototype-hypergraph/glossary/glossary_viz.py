@@ -191,6 +191,7 @@ aside h2:first-child{margin-top:0}
 <header>
   <h1>CHI glossary hypergraph</h1>
   <span class="stats" id="stats"></span>
+  <span class="stats" id="busy" role="status" style="color:var(--accent)"></span>
   <span class="spacer"></span>
   <input id="q" type="search" placeholder="Search terms, aliases, contexts…" aria-label="Search the glossary">
   <button id="relayout" type="button">Re-layout</button>
@@ -258,6 +259,10 @@ function styleSheet(){
 }
 const cy = cytoscape({container:document.getElementById("cy"),elements:els,style:styleSheet(),wheelSensitivity:.25,minZoom:.05,maxZoom:5,boxSelectionEnabled:false});
 
+// "Shown" means not carrying the `off` class. Cytoscape's visible pseudo-selector reads style that is only recomputed on
+// the next frame, so right after a class change it still answers with the OLD state; the class check is instant and exact.
+const shown = () => cy.elements().not(".off");
+const shownNodes = () => cy.nodes().not(".off");
 function visibleSet(){
   cy.batch(() => {
     cy.elements().removeClass("off");
@@ -271,13 +276,36 @@ function visibleSet(){
     if (hidden.has("Predicate")) cy.edges('[role = "PREDICATE"]').addClass("off");
   });
 }
-function layout(){
-  cy.resize();
-  const vis = cy.elements(":visible");
-  vis.layout({name:"cose",animate:false,randomize:true,nodeRepulsion:() => 14000,idealEdgeLength:() => 46,edgeElasticity:() => 90,gravity:.9,numIter:1800,nodeOverlap:8,padding:30}).run();
-  cy.fit(vis, 30);
+// The force layout is the only expensive step (seconds, and it blocks the tab). So it runs once, its positions are
+// remembered (in this browser, per snapshot), and toggling a filter only hides or shows nodes. Nodes that were never
+// placed (the predicate hubs, until first shown) trigger one layout; "Re-layout" runs it on request.
+const POS_KEY = "chi-glossary-pos:" + DATA.store + ":" + DATA.generated;
+const positioned = new Set();
+const busy = document.getElementById("busy");
+function loadPositions(){
+  try {
+    const saved = JSON.parse(localStorage.getItem(POS_KEY) || "null"); if (!saved) return;
+    cy.nodes().forEach(n => { const p = saved[n.id()]; if (p) { n.position({x:p[0],y:p[1]}); positioned.add(n.id()); } });
+  } catch (e) {}
 }
-function refresh(){ visibleSet(); layout(); }
+function savePositions(){
+  try { const out = {}; cy.nodes().forEach(n => { if (positioned.has(n.id())) out[n.id()] = [Math.round(n.position("x")*10)/10, Math.round(n.position("y")*10)/10]; });
+        localStorage.setItem(POS_KEY, JSON.stringify(out)); } catch (e) {}
+}
+function layout(then){
+  busy.textContent = "Laying out " + shownNodes().length + " nodes…";
+  setTimeout(() => {                                       // a short pause lets the message paint; a timer still fires in a background tab
+    cy.resize();
+    const vis = shown();
+    vis.layout({name:"cose",animate:false,randomize:true,nodeRepulsion:() => 14000,idealEdgeLength:() => 46,edgeElasticity:() => 90,gravity:.9,numIter:1200,nodeOverlap:8,padding:30}).run();
+    shownNodes().forEach(n => positioned.add(n.id()));
+    savePositions(); cy.fit(vis, 30); busy.textContent = ""; if (then) then();
+  }, 40);
+}
+function refresh(){
+  visibleSet();
+  if (shownNodes().some(n => !positioned.has(n.id()))) layout(); else cy.resize();
+}
 
 // ---------- legend, filters, stats ----------
 const counts = {}; DATA.objects.forEach(o => counts[o.type] = (counts[o.type]||0) + 1);
@@ -317,8 +345,8 @@ function showClaim(c){
 function clearFocus(){ cy.elements().removeClass("dim hit"); }
 cy.on("tap", "node", e => {
   const n = e.target; clearFocus();
-  const hood = n.closedNeighborhood(":visible");
-  cy.elements(":visible").not(hood).addClass("dim");
+  const hood = n.closedNeighborhood().not(".off");
+  shown().not(hood).addClass("dim");
   n.data("kind") === "claim" ? showClaim(claimById[n.id()]) : showObject(byId[n.id()]);
 });
 cy.on("tap", e => { if (e.target === cy) { clearFocus(); detail.innerHTML = '<p class="note">Click a node to see what it is, what supports it and its neighbours.</p>'; } });
@@ -329,16 +357,17 @@ cy.on("mouseout", "node", () => { tip.style.display = "none"; });
 const q = document.getElementById("q");
 q.addEventListener("input", () => {
   clearFocus(); const term = q.value.trim().toLowerCase(); if (!term) return;
-  const hits = cy.nodes(":visible").filter(n => n.data("kind")==="object" && n.data("label").toLowerCase().includes(term));
+  const hits = shownNodes().filter(n => n.data("kind")==="object" && n.data("label").toLowerCase().includes(term));
   if (!hits.length) return;
-  cy.elements(":visible").not(hits.closedNeighborhood(":visible")).addClass("dim"); hits.addClass("hit"); cy.animate({fit:{eles:hits.closedNeighborhood(":visible"),padding:60},duration:250});
+  shown().not(hits.closedNeighborhood().not(".off")).addClass("dim"); hits.addClass("hit"); cy.animate({fit:{eles:hits.closedNeighborhood().not(".off"),padding:60},duration:250});
 });
 q.addEventListener("keydown", e => { if (e.key === "Escape") { q.value = ""; clearFocus(); } });
-document.getElementById("relayout").addEventListener("click", layout);
-document.getElementById("fit").addEventListener("click", () => cy.fit(cy.elements(":visible"), 30));
+document.getElementById("relayout").addEventListener("click", () => layout());
+document.getElementById("fit").addEventListener("click", () => cy.fit(shown(), 30));
 new ResizeObserver(() => cy.resize()).observe(document.getElementById("cy"));
-window.addEventListener("load", () => { cy.resize(); cy.fit(cy.elements(":visible"), 30); });
+window.addEventListener("load", () => { cy.resize(); if (!busy.textContent) cy.fit(shown(), 30); });
 matchMedia("(prefers-color-scheme: dark)").addEventListener("change", () => cy.style(styleSheet()));
+loadPositions();
 refresh();
 window.__ready = true;
 </script>
