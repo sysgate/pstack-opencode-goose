@@ -1,7 +1,7 @@
 # The verify panel: showing the exact source text
 
 Type: grilling
-Status: open
+Status: in progress (claimed by the wayfinder session working the map; needs the user)
 Blocked by: 
 
 ## Question
