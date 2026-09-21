@@ -2,7 +2,7 @@
 
 Type: task (AFK, then a user review)
 Status: open
-Blocked by: [The verify panel](06-verify-panel-source-text.md), [Editor v2 screens](07-editor-v2-screens.md)
+Blocked by: 
 
 ## Question
 

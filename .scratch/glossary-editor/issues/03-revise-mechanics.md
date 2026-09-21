@@ -57,6 +57,7 @@ Settled with the user across two grilling rounds; every recommendation was accep
 - **loaded, unverified** (a new claim)
 - **revision awaiting verification** (the old claim is challenged, the new text pending)
 - **verified**
+- **awaiting reaffirm** (a reverted edit, or a removed entry put back while its claim is still challenged: the text matches evidence that is still admitted; see [Editor v2 screens](07-editor-v2-screens.md))
 - **restored, awaiting verification** (a revoked or denied claim whose statement is back in the sources; see [Removal and revoke](04-removal-and-revoke.md))
 - **needs attention** (a state the loader never produces)
 

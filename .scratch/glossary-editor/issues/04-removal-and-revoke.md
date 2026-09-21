@@ -29,10 +29,10 @@ Settled with the user across three grilling rounds; every recommendation was acc
 
 **Load (the machine step) withholds a removed claim at once.** For a removed claim that is admitted, load **challenges** it as `sys:adjudicator` with the reason "no longer in the sources": nothing is final and the claim stops being asserted. This is the same rule as for a changed term: the machine may only make the store less assertive, immediately and reversibly. Resumable, like the revise step. A claim already challenged (a revision pending) stays challenged. A pending claim is not asserted, so load leaves it.
 
-**A human finalizes it, with one command.** `glossary revoke --by human:NAME --note "..."`, selecting with `--term T`, `--anchor A` or `--all-removed --expect N`:
+**A human finalizes it, with one command.** `glossary revoke --by human:NAME --note "..."`, selecting with `--term T`, `--anchor A` or `--all-removed`, and requiring `--confirm DIGEST`:
 - refuses a non-human `--by`, an empty note and a placeholder note (the rules `verify` uses);
 - refuses any claim still in the sources (a live claim is revised, never revoked);
-- has no default selection; `--all-removed` requires `--expect N` to equal the count the report showed, so a bad edit that deleted a section cannot be revoked in one careless run;
+- has no default selection and requires `--confirm DIGEST`, computed over the exact claims, their state and the admitted evidence being retired (the same guard as verify; see [The verify panel](06-verify-panel-source-text.md)), so a bad edit that deleted a section cannot be revoked in one careless run and a claim whose state changed since the report is refused. This replaced an earlier `--expect N`;
 - one transaction per claim, reported per claim, with the human as the actor. A challenged claim gets a review and then a revoke; an admitted one that load has not yet reached is revoked directly; a claim that was loaded but never verified is **denied** (review, then reject) and reported as "denied (never verified)";
 - it is the only thing in the loader that ever revokes. The store enforces none of these rules (a `sys:` actor can revoke with an empty note), so the command is the only gate.
 
