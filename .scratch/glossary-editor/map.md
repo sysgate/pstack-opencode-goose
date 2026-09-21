@@ -4,6 +4,8 @@
 
 A locked set of decisions and a build spec (`docs/glossary-editor/SPEC.md`) from which version 2 of the glossary editor can be built, with nothing left to decide before someone builds it. The destination is the spec, not the build. It has to say, in particular, how a changed or removed term moves through the store's revision lifecycle without a full rebuild.
 
+**Reached (2026-09-20):** the spec is written and reviewed: [`docs/glossary-editor/SPEC.md`](../../docs/glossary-editor/SPEC.md). No tickets remain; the fog is cleared.
+
 ## Notes
 
 - **Domain**: a local web app (`hypergraph-db/glossary-editor/`; version 1 is built and was still uncommitted when this map was charted) that edits the two glossary Markdown files (`CONTEXT.md`, `docs/ccgf/CONTEXT.md`) and drives the glossary loader (`chi-platform/infra/chi_agent_gateway/app/hypergraph/glossary.py`) against the prototype database. Vocabulary is in `CONTEXT-MAP.md`, `CONTEXT.md` and `docs/ccgf/CONTEXT.md`. The revision lifecycle is in the doctrine (`AGENTS.md`, `docs/ARCHITECTURE.md`). Core rule: generation proposes, governance admits.
@@ -24,14 +26,13 @@ A locked set of decisions and a build spec (`docs/glossary-editor/SPEC.md`) from
 - [What readers say about a withheld term](issues/09-what-readers-say-about-a-withheld-term.md): `define` reuses the doctrine's projection labels verbatim with a reason from a closed list, one line per current claim (earlier versions only counted), integrity fault first, never instructing; the lint hook stays silent; `status` and the editor name the next step and show the same strings.
 - [The verify panel: showing the exact source text](issues/06-verify-panel-source-text.md): the panel shows each pending claim by case (new, revision with old and new text, reaffirm, restored); `verify` requires an explicit selection plus a `--confirm` digest over the exact claims and text, so it refuses if the source changed after you looked; revoke uses the same guard; name and note rules live in the loader; one note per run; the page refreshes on focus.
 - [Editor v2 screens](issues/07-editor-v2-screens.md): term-centred layout (the user chose variant C of a three-variant prototype): each term's page has the v1 form above a table of its claims (state, projection label and reason, next step), an inline Remove term consequences box that refuses while a collisions row names the term, a collisions table screen, and an inline "The database" panel with Load, Verify and Revoke builders (no drawer); reaffirms get their own pill, awaiting reaffirm.
+- [Assemble the spec](issues/08-assemble-the-spec.md): `docs/glossary-editor/SPEC.md` (13 sections, a decision index, deltas, the closed reason list, build slices and test cases) and a companion of proposed, unapplied glossary and doctrine text; a restored claim with unchanged text is attested by the human as actor on the bind and admit; `--anchor` selects only among the right states; the web view and rename are out; testing extends v1's practice.
 
 ## Not yet specified
 
 <!-- in scope, but not sharp enough to ticket yet -->
 
-- **Rename as one act.** Unsupported in v2 (a rename is a revoke plus a new term). Returns once revise works, if the extra claims a rename touches (avoid aliases, group, collisions) turn out to be manageable.
-- **Refreshing the hypergraph web view after a save.** The view is a snapshot; whether the editor regenerates it or links to it is not yet a sharp question.
-- **How v2 is tested.** The scratch-store harness, sabotage probes and browser checks worked for v1; what v2's new operations need on top is not yet known.
+(none: the fog is cleared)
 
 ## Out of scope
 
@@ -44,3 +45,5 @@ A locked set of decisions and a build spec (`docs/glossary-editor/SPEC.md`) from
 - Performance work beyond two notes for the spec: reuse one connection in the evidence insert if rebuilds ever feel slow, and watch the per-call integrity cost in the lint hook past roughly 10,000 claims. (Measured: load is linear at about 2.5 ms per claim.)
 - Building v2. The destination is the spec.
 - Editor-owned history, undo or commits. The Markdown is in git.
+- **Rename as one act.** Unsupported in v2 (a rename is a revoke plus a new term). It may return as its own effort once revise works, if the extra claims a rename touches (avoid aliases, group, collisions) turn out to be manageable.
+- **Regenerating or extending the hypergraph web view** to show these states. It stays a snapshot.
