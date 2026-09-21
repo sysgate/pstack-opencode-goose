@@ -1,7 +1,7 @@
 # CHI hypergraph database (prototype store)
 
 `chi_hypergraph.PROTOTYPE.sqlite3` holds the CHI Platform glossary in the real hypergraph store: 75 terms, 139 avoid entries (136 distinct words),
-227 semantic objects, 264 claims (hyperedges), each backed by the exact source text it came from. It is a **separate, rebuildable
+229 semantic objects, 267 claims (hyperedges), each backed by the exact source text it came from. It is a **separate, rebuildable
 prototype file**, not the gateway's live audit ledger. Nothing here touches `chi-platform/infra/chi_agent_gateway/receipts/`.
 The file is gitignored (`*.sqlite3`); the Markdown glossaries stay authoritative and this file can always be rebuilt from them.
 
@@ -21,12 +21,21 @@ accepted doctrine, extracted (tier 3) evidence is admitted only by a human. Its 
 `candidate_evidence` link), so queries written against one will not run against the other. If you see 222 objects or 256 claims, you
 are looking at the old one.
 
-## State right now: loaded and VERIFIED
+## State right now: loaded and VERIFIED (all 267 claims)
 
-All 264 claims are `ADMITTED` and assertable. On 2026-09-20 the evidence was verified by `human:robert-lai` with the note
-"reviewed the CHI glossaries on 2026-09-20" (recorded on all 264 admission receipts, tier 3, and sealed with the content hash).
-The verification was run at Robert Lai's direction after his own attempt hit a shell quoting error; the name was written without a
-space (`human:robert-lai`) so it is easy to search. Integrity is clean (1,510 receipts) and the anchor agrees.
+All 267 claims are `ADMITTED` and assertable. Integrity is clean (1,526 receipts) and the anchor agrees.
+
+* **264 claims**, verified 2026-09-20 by `human:robert-lai` with the note "reviewed the CHI glossaries on 2026-09-20" (recorded on the
+  admission receipts, tier 3, sealed with the content hash). That run was made at Robert Lai's direction after his own attempt hit a shell
+  quoting error; the name has no space (`human:robert-lai`) so it is easy to search.
+* **3 claims** (receipts 1518, 1521, 1524, 2026-09-20 23:44:44 UTC): the collisions of *Fast path*, *Generative layer (System 1)* and
+  *Adjudication layer (System 2)* with an **Outside usage** (the router's "fast-path / diagnostic" route in `docs/ARCHITECTURE.md`, and
+  TypeSafe's "System One"). They were verified as `human:robert-lai`, but **the recorded note is just `...`**, the placeholder from the
+  example command, so those receipts do not say what was reviewed. Receipts cannot be edited; to fix the record, revoke and reload those 3
+  claims and verify again with a real note (a human decision).
+
+**Source notes** (`source-notes/`): background on outside things the store points at, kept as plain Markdown and never as claims. Today:
+`typesafe-system-one.md` (TypeSafe's "System One" models and Jev: what the vendor's own page says, checked against the raw page).
 
 If a glossary changes after this, `status` reports the claim as **drift** and leaves it alone; rebuild from the sources (below), or
 revoke and reload, and verify again. Verification is a human act: only a `human:NAME` can do it.
@@ -64,7 +73,8 @@ assertable = [p for p in projection.project(db, report) if p.assertable]   # onl
 
 The model, in tables you can query directly:
 
-* `semantic_objects` — Term, Glossary group, Avoided alias, Avoid note, Context, Predicate (id, type, label, scope, meanings, state).
+* `semantic_objects` — Term, Glossary group, Avoided alias, Avoid note, Context, Predicate, Outside usage (id, type, label, scope, meanings, state).
+  An *Outside usage* is a phrase the map quotes from somewhere no glossary defines; it is never a Term and is backed only by the map's words.
 * `hyperedges` + `hyperedge_members` — a claim is a `CLAIM` with roles `SUBJECT`, `PREDICATE`, `OBJECT` and an optional `CONDITION`
   (the qualifying note on an "avoid" entry). Predicates: *is defined in*, *belongs to group*, *is avoided in favour of*,
   *must not be confused with*.
@@ -72,7 +82,7 @@ The model, in tables you can query directly:
   then its binding to the claim.
 * `receipts` — the hash-chained record of every decision. Everything above is explained by it.
 
-The same word in two contexts is two objects (the gate's *Scope* is not CCGF's *Scope*); the map's declared collisions are claims.
+The same word in two contexts is two objects (the gate's *Scope* is not CCGF's *Scope*); the map's declared collisions are claims, six of them: three between two terms, and three between a term and an Outside usage.
 
 ## Rebuild from the sources
 
