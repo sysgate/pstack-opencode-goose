@@ -74,6 +74,16 @@ _Avoid_: history
 An ordered run of hyperedges along which an inference or causal claim travels. Valid only if neighbours connect through compatible roles, their validity intervals overlap, no premise is unsupported, and causal paths never loop.
 _Avoid_: chain (the CCGF chain is the sequence of governance stages), traversal
 
+**Successor**:
+The claim that replaces an earlier one by naming it as its predecessor, raised after that claim was revised, revoked or denied. It starts pending and must earn its admission again; the earlier one is never resumed.
+
+**Predecessor**:
+An earlier hyperedge or semantic object that a later one names in its lineage. It is terminal, and is never resumed.
+
+**Outside usage**:
+A phrase quoted from somewhere no glossary defines, such as a diagram label or another product's term, recorded only so that a defined term can be kept apart from it. It is never a term and asserts nothing about its own meaning.
+_Avoid_: external term, foreign term
+
 ### Narrowing and admission
 
 **Semantic candidate**:
@@ -197,3 +207,11 @@ _Avoid_: error, rejection code
 **Projection label**:
 How a piece of knowledge is worded when shown: admitted, pending evidence, bounded ambiguous, challenged, revised, revoked, closed, unknown, or not projectable. Derived from stored state, never stored as authority.
 _Avoid_: status badge
+
+**Drift**:
+A change to a glossary source that has been saved but not yet loaded, so the store still asserts the earlier text. It ends when load withholds the claim. It is a relation between a source and the store, not an admission state.
+_Avoid_: out of sync
+
+**Withheld**:
+Not asserted: a claim that is not admitted, or that is admitted but fails the integrity check. A projection never shows a withheld claim as knowledge, and the reader says why.
+_Avoid_: suppressed
