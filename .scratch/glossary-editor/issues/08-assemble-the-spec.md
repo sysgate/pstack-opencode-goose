@@ -2,7 +2,7 @@
 
 Type: task (AFK, then a user review)
 Status: open
-Blocked by: [Revise mechanics](03-revise-mechanics.md), [Removal and revoke](04-removal-and-revoke.md), [Collisions list](05-collisions-list-format.md), [The verify panel](06-verify-panel-source-text.md), [Editor v2 screens](07-editor-v2-screens.md)
+Blocked by: [What readers say about a withheld term](09-what-readers-say-about-a-withheld-term.md), [Removal and revoke](04-removal-and-revoke.md), [The verify panel](06-verify-panel-source-text.md), [Editor v2 screens](07-editor-v2-screens.md)
 
 ## Question
 

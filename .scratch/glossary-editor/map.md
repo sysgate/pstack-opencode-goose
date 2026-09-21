@@ -9,7 +9,7 @@ A locked set of decisions and a build spec (`docs/glossary-editor/SPEC.md`) from
 - **Domain**: a local web app (`hypergraph-db/glossary-editor/`; version 1 is built and was still uncommitted when this map was charted) that edits the two glossary Markdown files (`CONTEXT.md`, `docs/ccgf/CONTEXT.md`) and drives the glossary loader (`chi-platform/infra/chi_agent_gateway/app/hypergraph/glossary.py`) against the prototype database. Vocabulary is in `CONTEXT-MAP.md`, `CONTEXT.md` and `docs/ccgf/CONTEXT.md`. The revision lifecycle is in the doctrine (`AGENTS.md`, `docs/ARCHITECTURE.md`). Core rule: generation proposes, governance admits.
 - **Skills to consult**: `mattpocock-skills:domain-modeling` (keep the glossaries current), `mattpocock-skills:research`, `mattpocock-skills:prototype`.
 - **Prototype to build from**: editor v1 (`hypergraph-db/glossary-editor/server.py`, `page.html`, its 40 tests) and the loader's `build_plan(..., overrides=)`. The spec must list its deltas from v1.
-- **Standing preferences**: single user, local, no accounts. Markdown is the source of truth and the store is loaded from it. The editor and its docs say **term**, never "entry" ("entry" already means an audit-log entry in the gate glossary). A machine may only make the store *less* assertive (challenge, withhold); only a human makes it more assertive (verify) or final (revoke). Nothing is deleted: the action is **revoke**, with a receipt. The editor never commits or pushes. No doctrine or glossary edit is applied without the user's go-ahead. Anything run against a store uses a scratch copy, never the real prototype database.
+- **Standing preferences**: single user, local, no accounts. Markdown is the source of truth and the store is loaded from it. The editor and its docs say **term**, never "entry" ("entry" already means an audit-log entry in the gate glossary). A machine may only make the store *less* assertive (challenge, withhold); only a human makes it more assertive (verify) or final (revoke). The store does not enforce this (a `sys:` actor may revoke), so it is policy the loader and editor must enforce. Nothing is deleted: the action is **revoke**, with a receipt. The editor never commits or pushes. No doctrine or glossary edit is applied without the user's go-ahead. Anything run against a store uses a scratch copy, never the real prototype database.
 - **Tracker**: local markdown. Tickets are `issues/NN-slug.md` with `Type:`, `Status:`, `Blocked by:` lines. Research findings go in `research/`.
 
 ## Decisions so far
@@ -17,14 +17,15 @@ A locked set of decisions and a build spec (`docs/glossary-editor/SPEC.md`) from
 <!-- one line per closed ticket -->
 
 - [Charting decisions (Q1–Q18)](issues/01-charting-decisions.md): destination is a spec, not a build; single user and local; keep v1 as the base; a changed term follows the doctrine's lineage path and the old claim is withheld at once; removals are reported and a human revokes; collisions become a structured list; verify stays a command that shows the exact source text; git owns history; rename, performance work and hosting are out.
+- [The store's lifecycle facts](issues/02-store-lifecycle-facts.md): a `sys:` actor may challenge an admitted claim; revoke is not human-only in the store (editor policy); reopen makes a new claim but only from a terminal state, so a revise runs challenge, review, revise, close, reopen; the loader cannot see a successor or bind changed text; findings in `research/02-store-lifecycle-facts.md`.
+- [Collisions list: the structured format in CONTEXT-MAP.md](issues/05-collisions-list-format.md): a table in `CONTEXT-MAP.md`, one row per pair, an `outside:` marker for phrases used elsewhere; the row is each claim's evidence; the loader fails loudly on a missing or bad section; the two prose collision lines are trimmed (a draft until the user says go); the six existing collision claims are revised once.
+- [Revise mechanics: what happens when a term changes](issues/03-revise-mechanics.md): a change is decided by a claim's members (same members and new text is a revise); load inserts a candidate and challenges the old claim, verify (a human, per claim) revises, closes and reopens a successor, or reaffirms a reverted edit; the old evidence stays admitted; `status` becomes a partition; two loader defects folded in.
 
 ## Not yet specified
 
 <!-- in scope, but not sharp enough to ticket yet -->
 
 - **Rename as one act.** Unsupported in v2 (a rename is a revoke plus a new term). Returns once revise works, if the extra claims a rename touches (avoid aliases, group, collisions) turn out to be manageable.
-- **The three collision claims verified with the note `...`.** Their receipts do not say what was reviewed and cannot be edited. Revoking and re-verifying them is the first real use of revoke, so it waits on how revoke works.
-- **What readers say about a withheld term.** `define` and the lint hook go quiet while a term is being revised. Whether they should say so, and how, depends on the revise mechanics.
 - **Refreshing the hypergraph web view after a save.** The view is a snapshot; whether the editor regenerates it or links to it is not yet a sharp question.
 - **How v2 is tested.** The scratch-store harness, sabotage probes and browser checks worked for v1; what v2's new operations need on top is not yet known.
 

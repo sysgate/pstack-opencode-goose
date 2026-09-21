@@ -2,7 +2,7 @@
 
 Type: prototype
 Status: open
-Blocked by: [Revise mechanics](03-revise-mechanics.md), [Removal and revoke](04-removal-and-revoke.md), [Collisions list](05-collisions-list-format.md), [The verify panel](06-verify-panel-source-text.md)
+Blocked by: [Removal and revoke](04-removal-and-revoke.md), [The verify panel](06-verify-panel-source-text.md)
 
 ## Question
 
