@@ -96,6 +96,45 @@ cd ~/Projects/chi-platform/infra/chi_agent_gateway
 
 Both commands refuse the gateway's live ledger unless `--allow-live` is given, and `--create` refuses an existing file.
 
+## Updating the glossary
+
+The Markdown glossaries are the source of truth (`CONTEXT.md` for the permission gate, `docs/ccgf/CONTEXT.md` for CCGF); the store is loaded
+from them. The steps: **edit the Markdown, plan, load, verify, check**, then commit the Markdown (the database file is gitignored).
+
+### The web editor (add or edit an entry)
+
+```bash
+python3 ~/Projects/chi/hypergraph-db/glossary-editor/server.py        # then open http://127.0.0.1:8770/
+```
+
+It listens on this machine only. Pick an entry (or "+ New"), change it, press **Preview**, then **Save to Markdown**:
+
+* **Preview** shows the exact diff, warnings, and what each claim is in the store: *not loaded*, *loaded, unverified*, *verified*, or
+  **drift** (the text changed after it was loaded). Save stays disabled until a preview succeeds for the current form.
+* **Save** rewrites that one entry block and nothing else. The result is re-read and must equal the old file with only that entry changed,
+  or nothing is written; a file that changed on disk since the page loaded it is refused.
+* **Load** (on the page) runs `glossary load` on the prototype database: new claims arrive as `PENDING` and nothing is admitted.
+* **Verify** is a human decision and is not run from the page. Once claims are pending the page builds the command from your name and a
+  note (it refuses a name with spaces and placeholder notes such as `...`); copy it and run it yourself.
+* Options: `--port`, `--root` (the chi checkout), `--db` (the store). It never passes `--allow-live`.
+
+What it does not do: **delete or rename** entries (the term is fixed once created), or record **collisions** (those are declared in
+`chi-platform/.../glossary.py`). Tests: `python3 -m pytest -q hypergraph-db/glossary-editor` (only ever touches temporary copies).
+
+### What happens to the store (the same by hand)
+
+```bash
+cd ~/Projects/chi-platform/infra/chi_agent_gateway
+../../.venv/bin/python -m app.hypergraph.glossary plan                                  # dry run, touches no database
+../../.venv/bin/python -m app.hypergraph.glossary load   --db ~/Projects/chi/hypergraph-db/chi_hypergraph.PROTOTYPE.sqlite3
+../../.venv/bin/python -m app.hypergraph.glossary verify --db <same> --by human:YOURNAME --note "<what you actually reviewed>"
+```
+
+* A **new** term, alias or claim loads as `PENDING`; `verify` touches only what is not yet admitted.
+* A **changed** claim text is reported as **drift** and left alone: the store keeps asserting the old text. There is no in-place edit; the
+  prototype's fix is a full rebuild (delete the file, `migrate --create`, `load`, verify everything again; see "Rebuild from the sources").
+* A term, alias or note **removed** from the Markdown is not detected: its claims stay `ADMITTED` until the store is rebuilt.
+
 ## Agent workflow: the glossary lint hook
 
 A Claude Code **PostToolUse** hook checks the prose an agent has just written (Write, Edit, MultiEdit on `.md/.mdx/.txt/.rst` files

@@ -1,0 +1,301 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>CHI glossary editor</title>
+<style>
+:root{--bg:#f6f7f9;--panel:#fff;--ink:#1c2128;--muted:#5d6672;--line:#dde1e6;--accent:#2f6fdb;--accent-ink:#fff;
+  --ok:#1a7f4b;--okbg:#e3f5ea;--warn:#8a5a00;--warnbg:#fdf1d6;--bad:#b3261e;--badbg:#fbe4e2;--new:#2f6fdb;--newbg:#e2ebfb;--code:#eef0f3;--add:#e3f5ea;--del:#fbe4e2}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#14171b;--panel:#1c2026;--ink:#e6e9ed;--muted:#98a1ad;--line:#2f353d;--accent:#6b9cf0;--accent-ink:#0d1117;
+  --ok:#5fcf8f;--okbg:#17301f;--warn:#e8b64c;--warnbg:#332a12;--bad:#f2837c;--badbg:#3a1d1b;--new:#8ab2f5;--newbg:#1c2a44;--code:#262b33;--add:#17301f;--del:#3a1d1b}}
+*{box-sizing:border-box}
+:root{color-scheme:light dark}
+html,body{margin:0;background:var(--bg);color:var(--ink);font:14px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif}
+header{position:sticky;top:0;z-index:5;background:var(--panel);border-bottom:1px solid var(--line);padding:10px 16px;display:flex;gap:12px 20px;align-items:center;flex-wrap:wrap}
+header h1{font-size:16px;margin:0}
+.chips{display:flex;gap:6px;flex-wrap:wrap;flex:1}
+.chip{border-radius:999px;padding:2px 10px;font-size:12px;background:var(--code);color:var(--muted)}
+.chip.ok{background:var(--okbg);color:var(--ok)}.chip.warn{background:var(--warnbg);color:var(--warn)}.chip.bad{background:var(--badbg);color:var(--bad)}.chip.new{background:var(--newbg);color:var(--new)}
+main{display:grid;grid-template-columns:minmax(260px,340px) minmax(0,1fr);gap:16px;padding:16px;max-width:1300px;margin:0 auto}
+@media (max-width:820px){main{grid-template-columns:1fr}}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:14px}
+.side{align-self:start;position:sticky;top:64px;max-height:calc(100vh - 80px);display:flex;flex-direction:column}
+@media (max-width:820px){.side{position:static;max-height:none}}
+.tools{display:flex;gap:8px;margin-bottom:8px}
+.tools input{flex:1}
+.list{overflow-x:hidden;overflow-y:auto;margin:0 -6px;padding:0 6px;min-height:120px;max-height:60vh}
+.gl{font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin:12px 0 4px}
+.item{display:block;width:100%;text-align:left;background:none;border:1px solid transparent;border-radius:8px;padding:6px 8px;color:inherit;cursor:pointer;font:inherit}
+.item:hover{background:var(--code)}.item[aria-current="true"]{border-color:var(--accent);background:var(--newbg)}
+.item .t{display:flex;justify-content:space-between;gap:8px;font-weight:600}
+.item .d{display:block;color:var(--muted);font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+.pill{font-size:11px;font-weight:600;border-radius:999px;padding:0 8px;white-space:nowrap}
+.pill.admitted{background:var(--okbg);color:var(--ok)}.pill.pending{background:var(--warnbg);color:var(--warn)}.pill.new{background:var(--newbg);color:var(--new)}.pill.drift,.pill.other{background:var(--badbg);color:var(--bad)}.pill.no_db{background:var(--code);color:var(--muted)}
+label{display:block;font-weight:600;margin:12px 0 4px}
+label small{font-weight:400;color:var(--muted)}
+input,select,textarea,button{font:inherit;color:inherit}
+input[type=text],input[type=search],select,textarea{width:100%;padding:7px 9px;border:1px solid var(--line);border-radius:8px;background:var(--bg)}
+input[readonly],select[disabled]{opacity:.7}
+textarea{min-height:92px;resize:vertical}
+input:focus,select:focus,textarea:focus,button:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+.row{display:flex;gap:8px;margin-bottom:6px}.row input:first-child{flex:0 0 38%}.row .note{flex:1}
+button{border:1px solid var(--line);background:var(--panel);border-radius:8px;padding:7px 12px;cursor:pointer}
+button.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-ink);font-weight:600}
+button:disabled{opacity:.45;cursor:not-allowed}
+button.icon{padding:7px 10px;color:var(--muted)}
+.actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px;align-items:center}
+.msg{border-radius:8px;padding:8px 12px;margin-top:12px}
+.msg.bad{background:var(--badbg);color:var(--bad)}.msg.warn{background:var(--warnbg);color:var(--warn)}.msg.ok{background:var(--okbg);color:var(--ok)}
+.msg ul{margin:0;padding-left:18px}
+pre{background:var(--code);border-radius:8px;padding:10px;overflow:auto;font:12px/1.5 ui-monospace,Menlo,Consolas,monospace;margin:8px 0 0;white-space:pre-wrap;word-break:break-word}
+pre .a{background:var(--add);display:block}pre .d{background:var(--del);display:block}pre .h{color:var(--muted);display:block}
+h2{font-size:14px;margin:0 0 4px}
+.muted{color:var(--muted)}.hint{color:var(--muted);font-size:12px;margin:2px 0 0}
+.stack>*+*{margin-top:16px}
+.claims{margin:6px 0 0;padding:0;list-style:none;font-size:12px}.claims li{display:flex;gap:8px;align-items:center;margin:2px 0}
+.mono{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:12px}
+</style>
+</head>
+<body>
+<header>
+  <h1>CHI glossary editor</h1>
+  <div class="chips" id="chips" aria-live="polite"></div>
+  <button id="refresh" type="button">Refresh</button>
+</header>
+<main>
+  <section class="panel side" aria-label="Entries">
+    <div class="tools">
+      <input type="search" id="q" placeholder="Search entries…" aria-label="Search entries">
+      <button class="primary" id="new" type="button">+ New</button>
+    </div>
+    <div class="tools"><select id="ctxfilter" aria-label="Show glossary"><option value="">Both glossaries</option></select></div>
+    <div class="list" id="list"></div>
+  </section>
+  <div class="stack">
+    <section class="panel" aria-label="Entry form">
+      <h2 id="formtitle">New entry</h2>
+      <p class="hint" id="formhint">Saving rewrites one entry in the Markdown glossary. Nothing changes in the database until you load.</p>
+      <form id="form" autocomplete="off">
+        <label for="ctx">Glossary</label>
+        <select id="ctx"></select>
+        <label for="term">Term</label>
+        <input type="text" id="term" required>
+        <div id="groupwrap">
+          <label for="group">Group</label>
+          <select id="group"></select>
+          <input type="text" id="newgroup" placeholder="Name of the new group" style="margin-top:6px" hidden>
+        </div>
+        <label for="def">Definition <small>one paragraph</small></label>
+        <textarea id="def" required></textarea>
+        <label>Words to avoid <small>instead of this term; the note qualifies the advice</small></label>
+        <div id="avoid"></div>
+        <button type="button" id="addavoid">+ Add a word</button>
+        <div class="actions">
+          <button type="button" class="primary" id="preview">Preview</button>
+          <button type="button" id="save" disabled>Save to Markdown</button>
+          <span class="muted" id="savehint">Preview first: Save unlocks when the preview succeeds.</span>
+        </div>
+      </form>
+      <div id="claims"></div>
+      <div id="result"></div>
+    </section>
+    <section class="panel" aria-label="Database">
+      <h2>The database</h2>
+      <div id="dbstate" class="muted">Loading…</div>
+      <div id="dbactions"></div>
+    </section>
+  </div>
+</main>
+<script>
+"use strict";
+const TOKEN = "__TOKEN__";
+const $ = s => document.querySelector(s);
+const STATE_TEXT = {admitted:"verified", pending:"loaded, unverified", new:"not loaded", drift:"drift", other:"other", no_db:"no database"};
+let data = null, cur = {mode:"add", context:null, term:null}, previewed = null, lastLoad = null;
+
+function h(tag, attrs, ...kids){
+  const el = document.createElement(tag);
+  for (const [k, v] of Object.entries(attrs || {})) { if (k === "class") el.className = v; else if (k.startsWith("on")) el.addEventListener(k.slice(2), v); else el.setAttribute(k, v); }
+  for (const c of kids.flat()) if (c != null) el.append(c.nodeType ? c : document.createTextNode(c));
+  return el;
+}
+async function api(path, body){
+  try {
+    const r = await fetch(path, {method: body ? "POST" : "GET", headers: {"X-Editor-Token": TOKEN, "Content-Type": "application/json"}, body: body ? JSON.stringify(body) : undefined});
+    return {ok: r.ok, status: r.status, data: await r.json().catch(() => ({errors: ["The server sent something that is not JSON."]}))};
+  } catch (e) { return {ok: false, status: 0, data: {errors: ["Cannot reach the editor server. Is it still running?"]}}; }
+}
+const pill = s => h("span", {class: "pill " + s}, STATE_TEXT[s] || s);
+
+// ---------- list ----------
+function renderList(){
+  const q = $("#q").value.trim().toLowerCase(), cf = $("#ctxfilter").value, list = $("#list");
+  list.replaceChildren();
+  for (const [key, c] of Object.entries(data.contexts)) {
+    if (cf && cf !== key) continue;
+    const items = data.entries.filter(e => e.context === key && (!q || e.term.toLowerCase().includes(q) || e.definition.toLowerCase().includes(q) || e.avoid.some(a => a.word.toLowerCase().includes(q))));
+    list.append(h("div", {class: "gl"}, `${c.label} · ${items.length}`));
+    for (const e of items) {
+      list.append(h("button", {type: "button", class: "item", "aria-current": String(cur.mode === "edit" && cur.context === key && cur.term === e.term), onclick: () => openEntry(e)},
+        h("span", {class: "t"}, h("span", {}, e.term), pill(e.state)), h("span", {class: "d"}, e.definition)));
+    }
+  }
+}
+function renderChips(){
+  const s = data.summary, chips = $("#chips"); chips.replaceChildren();
+  if (!s) { chips.append(h("span", {class: "chip bad"}, "Cannot plan the sources: " + (data.problems[0] || "unknown problem"))); return; }
+  chips.append(h("span", {class: "chip"}, `${s.claims} claims`));
+  const add = (n, cls, text) => { if (n) chips.append(h("span", {class: "chip " + cls}, `${n} ${text}`)); };
+  add(s.admitted, "ok", "verified"); add(s.pending, "warn", "loaded, unverified"); add(s.new, "new", "not loaded"); add(s.drift, "bad", "drift"); add(s.other, "bad", "other state"); add(s.no_db, "", "no database");
+}
+
+// ---------- form ----------
+function setGroupOptions(ctxKey, value){
+  const c = data.contexts[ctxKey], sel = $("#group"); sel.replaceChildren();
+  $("#groupwrap").hidden = !c.has_groups; if (!c.has_groups) return;
+  for (const g of c.groups) sel.append(h("option", {value: g}, g));
+  sel.append(h("option", {value: "__new__"}, "New group…"));
+  sel.value = value && c.groups.includes(value) ? value : (value ? "__new__" : c.groups[0]);
+  $("#newgroup").hidden = sel.value !== "__new__"; if (sel.value === "__new__") $("#newgroup").value = value || "";
+}
+function addAvoidRow(word = "", note = ""){
+  const row = h("div", {class: "row"},
+    h("input", {type: "text", placeholder: "word or phrase", "aria-label": "Word to avoid", value: word}),
+    h("input", {type: "text", class: "note", placeholder: "optional note, e.g. only in casual speech", "aria-label": "Note", value: note}),
+    h("button", {type: "button", class: "icon", "aria-label": "Remove this word", onclick: () => { row.remove(); touch(); }}, "✕"));
+  $("#avoid").append(row);
+}
+function fillForm(e, ctxKey){
+  const edit = !!e;
+  $("#formtitle").textContent = edit ? `Edit “${e.term}”` : "New entry";
+  $("#ctx").value = ctxKey; $("#ctx").disabled = edit;
+  $("#term").value = edit ? e.term : ""; $("#term").readOnly = edit;
+  $("#def").value = edit ? e.definition : "";
+  setGroupOptions(ctxKey, edit ? e.group : null);
+  $("#avoid").replaceChildren(); (edit ? e.avoid : []).forEach(a => addAvoidRow(a.word, a.note || "")); if (!edit || !e.avoid.length) addAvoidRow();
+  renderClaims();
+  $("#result").replaceChildren(); previewed = null; touch();
+}
+function renderClaims(){
+  const box = $("#claims"); box.replaceChildren();
+  const e = cur.mode === "edit" && data.entries.find(x => x.context === cur.context && x.term === cur.term);
+  if (e) box.append(h("div", {class: "muted", style: "margin-top:12px"}, "Claims about this entry in the database:"),
+    h("ul", {class: "claims"}, e.claims.map(c => h("li", {}, pill(c.state), h("span", {class: "mono"}, c.anchor)))));
+}
+function openEntry(e){ cur = {mode: "edit", context: e.context, term: e.term}; fillForm(e, e.context); renderList(); }
+function newEntry(){ cur = {mode: "add", context: null, term: null}; fillForm(null, $("#ctx").value || Object.keys(data.contexts)[0]); renderList(); $("#term").focus(); }
+function payload(){
+  const c = data.contexts[$("#ctx").value];
+  let group = c.has_groups ? ($("#group").value === "__new__" ? $("#newgroup").value : $("#group").value) : null;
+  return {mode: cur.mode, context: $("#ctx").value, term: $("#term").value, group, definition: $("#def").value, base_sha: c.sha,
+          avoid: [...document.querySelectorAll("#avoid .row")].map(r => ({word: r.children[0].value, note: r.children[1].value}))};
+}
+function touch(){   // any change to the form invalidates the last preview
+  const stale = !previewed || previewed !== JSON.stringify(payload());
+  $("#save").disabled = stale; $("#savehint").hidden = !stale;
+}
+
+// ---------- preview and save ----------
+function errorsBox(list, cls = "bad"){ return h("div", {class: "msg " + cls, role: "alert"}, h("ul", {}, list.map(m => h("li", {}, m)))); }
+function diffPre(diff){
+  const pre = h("pre", {}); for (const line of diff.split("\n")) pre.append(h("span", {class: line.startsWith("+") && !line.startsWith("+++") ? "a" : line.startsWith("-") && !line.startsWith("---") ? "d" : "h"}, line || " "));
+  return pre;
+}
+function showResult(r, saved){
+  const out = $("#result"); out.replaceChildren();
+  if (r.data.errors) { out.append(errorsBox(r.data.errors)); return false; }
+  const d = r.data;
+  if (saved) out.append(h("div", {class: "msg ok", role: "status"}, "Saved to the Markdown file. Nothing has changed in the database yet: see “The database” below."));
+  if (d.warnings.length) out.append(errorsBox(d.warnings, "warn"));
+  out.append(h("h2", {style: "margin-top:14px"}, saved ? "What was written" : "What saving will change"), diffPre(d.diff || "(no change)"));
+  const ch = d.changed;
+  out.append(h("p", {class: "muted"}, ch.length ? `Claims that would not match the database (${ch.length}):` : "Every claim already matches the database."),
+    ch.length ? h("ul", {class: "claims"}, ch.map(c => h("li", {}, pill(c.state), h("span", {class: "mono"}, c.anchor)))) : null);
+  return true;
+}
+async function doPreview(){
+  const p = payload(), r = await api("/api/preview", p);
+  const ok = showResult(r, false); previewed = ok ? JSON.stringify(p) : null; touch();
+}
+async function doSave(){
+  const p = payload();
+  $("#save").disabled = true;
+  const r = await api("/api/save", p);
+  if (!showResult(r, true)) { touch(); return; }
+  previewed = null;
+  const saved = {context: p.context, term: r.data.entry.term};
+  lastLoad = null;
+  await refresh(); const e = data.entries.find(x => x.context === saved.context && x.term === saved.term);
+  if (e) { cur = {mode: "edit", ...saved}; const kept = [...$("#result").childNodes]; fillForm(e, saved.context); $("#result").replaceChildren(...kept); renderList(); }
+}
+
+// ---------- the database panel ----------
+const shq = s => "'" + String(s).replace(/'/g, "'\\''") + "'";
+function renderDb(){
+  const s = data.summary, box = $("#dbstate"), act = $("#dbactions"); act.replaceChildren();
+  box.textContent = "";
+  box.append(h("div", {}, "Store: ", h("span", {class: "mono"}, data.db.path), data.db.exists ? "" : "  (does not exist yet)"));
+  if (!s) return;
+  if (s.new) {
+    act.append(h("div", {class: "msg warn"}, `${s.new} claim${s.new === 1 ? " is" : "s are"} in the Markdown but not in the database. Loading adds ${s.new === 1 ? "it" : "them"} as PENDING; nothing is admitted.`),
+      h("div", {class: "actions"}, h("button", {type: "button", class: "primary", id: "load", onclick: doLoad}, `Load ${s.new} new claim${s.new === 1 ? "" : "s"} into the database`)),
+      h("div", {id: "loadout"}));
+  }
+  if (!$("#loadout")) act.append(h("div", {id: "loadout"}));
+  if (lastLoad) $("#loadout").append(lastLoad.cloneNode(true));
+  if (s.drift) act.append(h("div", {class: "msg bad"}, `${s.drift} claim${s.drift === 1 ? " shows" : "s show"} DRIFT: the text changed after ${s.drift === 1 ? "it was" : "they were"} loaded. Load will not touch ${s.drift === 1 ? "it" : "them"}, and the store still asserts the OLD text. The prototype's fix is a full rebuild; see hypergraph-db/README.md.`));
+  if (s.pending) act.append(verifyBox(s.pending));
+  if (!s.new && !s.drift && !s.pending && !s.other && s.no_db === 0) act.append(h("div", {class: "msg ok"}, "The database matches the Markdown: every claim is loaded and verified."));
+}
+async function doLoad(){
+  const b = $("#load"); b.disabled = true; b.textContent = "Loading…";
+  const r = await api("/api/load", {});
+  lastLoad = h("div", {}, ...(r.data.errors ? [errorsBox(r.data.errors)]
+    : [h("div", {class: "msg " + (r.data.returncode === 0 ? "ok" : "bad")}, r.data.returncode === 0 ? "Loaded. The new claims are PENDING until a human verifies them." : `The loader exited with ${r.data.returncode}.`), h("pre", {}, (r.data.stdout + r.data.stderr).trim() || "(no output)")]));
+  await refresh(false);
+}
+function verifyBox(n){
+  const name = h("input", {type: "text", id: "vname", placeholder: "yourname (no spaces)", "aria-label": "Your name", style: "max-width:240px"});
+  const note = h("textarea", {id: "vnote", placeholder: "What did you review? A real sentence, not a placeholder.", "aria-label": "Verification note", style: "min-height:56px"});
+  const cmd = h("pre", {id: "vcmd"}, ""), copy = h("button", {type: "button", disabled: "", onclick: async () => { try { await navigator.clipboard.writeText(cmd.textContent); copy.textContent = "Copied"; setTimeout(() => copy.textContent = "Copy command", 1500); } catch { copy.textContent = "Select and copy it by hand"; } }}, "Copy command");
+  const why = h("p", {class: "hint"}, "");
+  const update = () => {
+    const nm = name.value.trim(), nt = note.value.trim();
+    let problem = null;
+    if (!/^[A-Za-z0-9._-]{2,}$/.test(nm)) problem = "Enter your name with letters, digits, dots or dashes only (no spaces).";
+    else if (nt.length < 10 || /^[.…\s]*$/.test(nt) || /^(todo|tbd|n\/a|x+|test)$/i.test(nt)) problem = "Write what you reviewed (at least a short sentence); a placeholder is refused.";
+    why.textContent = problem || ""; copy.disabled = !!problem;
+    cmd.textContent = problem ? "" : `cd ~/Projects/chi-platform/infra/chi_agent_gateway && ../../.venv/bin/python -m app.hypergraph.glossary verify --db ${shq(data.db.path)} --by ${shq("human:" + nm)} --note ${shq(nt)}`;
+  };
+  name.addEventListener("input", update); note.addEventListener("input", update); update();
+  return h("div", {style: "margin-top:12px"}, h("div", {class: "msg warn"}, `${n} claim${n === 1 ? " is" : "s are"} loaded but not verified, so the glossary does not assert ${n === 1 ? "it" : "them"} yet. Verification is a human decision that this page does not make for you: build the command here, then run it yourself in a terminal.`),
+    h("label", {for: "vname"}, "Your name"), name, h("label", {for: "vnote"}, "What you reviewed"), note, why, cmd, h("div", {class: "actions"}, copy));
+}
+
+// ---------- boot ----------
+async function refresh(keep = true){
+  const r = await api("/api/entries");
+  if (r.data.errors) { $("#chips").replaceChildren(errorsBox(r.data.errors)); return; }
+  data = r.data;
+  const sel = $("#ctx"), fsel = $("#ctxfilter"), sv = sel.value, fv = fsel.value;
+  sel.replaceChildren(...Object.entries(data.contexts).map(([k, c]) => h("option", {value: k}, c.label)));
+  fsel.replaceChildren(h("option", {value: ""}, "Both glossaries"), ...Object.entries(data.contexts).map(([k, c]) => h("option", {value: k}, c.label)));
+  if (sv in data.contexts) sel.value = sv; if (fv in data.contexts) fsel.value = fv;
+  renderChips(); renderList(); renderDb(); renderClaims();
+}
+$("#refresh").addEventListener("click", () => refresh());
+$("#q").addEventListener("input", () => renderList());
+$("#ctxfilter").addEventListener("change", () => renderList());
+$("#new").addEventListener("click", newEntry);
+$("#addavoid").addEventListener("click", () => { addAvoidRow(); touch(); });
+$("#ctx").addEventListener("change", () => { setGroupOptions($("#ctx").value, null); touch(); });
+$("#group").addEventListener("change", () => { $("#newgroup").hidden = $("#group").value !== "__new__"; touch(); });
+$("#form").addEventListener("input", touch);
+$("#preview").addEventListener("click", doPreview);
+$("#save").addEventListener("click", doSave);
+$("#form").addEventListener("submit", e => e.preventDefault());
+refresh().then(() => newEntry());
+</script>
+</body>
+</html>
