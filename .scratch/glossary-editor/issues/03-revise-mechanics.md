@@ -33,7 +33,7 @@ Settled with the user across two grilling rounds; every recommendation was accep
 - Same members, different source text is a **revise**: the definition text, and the `_Avoid_:` line for aliases that stay with the same note.
 - New members make a **new claim**: a new avoided word, a changed avoid note (the note is a member), a changed group.
 - Members that vanish are a **removal**, decided in [Removal and revoke](04-removal-and-revoke.md).
-- An avoid claim's evidence stays the **whole `_Avoid_:` line**, so adding a word to a term with three avoided words revises those three claims and adds one. Per-alias evidence was rejected: it would change the evidence of all 139 avoid claims at migration.
+- An avoid claim's evidence stays the **whole `_Avoid_:` line**, so adding a word to a term with three avoided words revises those three claims and adds one. Per-alias evidence was rejected: it would change the evidence of all 143 avoid claims at migration.
 - A term's label cannot be revised in the store (only revoked or reopened), so a rename is a revoke plus a new term.
 
 **Load (the machine step), per source statement whose current text differs from its admitted text**
