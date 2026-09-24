@@ -38,7 +38,7 @@ A **claim** is a hyperedge (subject, predicate, object, optional condition) back
 | New members: a new avoided word, a changed avoid note (the note is a member), a changed group | **new claim** | loaded pending; a human verifies |
 | Members vanish: a dropped alias, a removed term, a renamed term (the old term) | **removal** | the old claim is challenged; a human revokes it |
 
-- An avoid claim's evidence is the **whole `_Avoid_:` line**. Adding a word to a term with three avoided words therefore revises those three claims and adds one. (Per-alias evidence was rejected: it would change the evidence of all 139 avoid claims at migration.)
+- An avoid claim's evidence is the **whole `_Avoid_:` line**. Adding a word to a term with three avoided words therefore revises those three claims and adds one. (Per-alias evidence was rejected: it would change the evidence of all 143 avoid claims at migration.)
 - A term's **label** cannot be revised in the store (only revoked or reopened), so a rename is a revoke plus a new term.
 - The loader **never guesses** that something was renamed or moved: a removed claim is one whose members are gone.
 - The **current claim** of a source statement is found by following the chain of computed ids: the id with no predecessors, then the id with the first as predecessor, and so on, taking the last that exists. No schema change is needed.
@@ -174,7 +174,7 @@ The collisions table is the first thing to go through the revise path, in this o
 3. `load`: the **six** existing collision claims change evidence text (today two prose lines back them), so each is challenged and gets a candidate.
 4. A human runs `verify` for the six with a **real note**. This also replaces the three outside-usage claims whose receipts carry the placeholder note `...` (that history stays; the new receipts say what was reviewed).
 
-Nothing else migrates: the 139 avoid claims and the definitions keep their evidence as it is.
+Nothing else migrates: the 143 avoid claims and the definitions keep their evidence as it is.
 
 ## 9. Deltas
 
