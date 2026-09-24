@@ -89,15 +89,26 @@ The same word in two contexts is two objects (the gate's *Scope* is not CCGF's *
 
 ## Rebuild from the sources
 
-The file is disposable. To start over: delete it, then
+The file is disposable. To start over: delete it **and its anchor sidecar**, then
 
 ```bash
+rm ~/Projects/chi/hypergraph-db/chi_hypergraph.PROTOTYPE.sqlite3 ~/Projects/chi/hypergraph-db/chi_hypergraph.PROTOTYPE.sqlite3.anchor.jsonl
 cd ~/Projects/chi-platform/infra/chi_agent_gateway
 ../../.venv/bin/python -m app.hypergraph.migrations migrate --db ~/Projects/chi/hypergraph-db/chi_hypergraph.PROTOTYPE.sqlite3 --create
 ../../.venv/bin/python -m app.hypergraph.glossary load --db ~/Projects/chi/hypergraph-db/chi_hypergraph.PROTOTYPE.sqlite3
 ```
 
 Both commands refuse the gateway's live ledger unless `--allow-live` is given, and `--create` refuses an existing file.
+
+**Delete the old anchor file too, not just the database.** The fresh chain's receipt sequence restarts at 1, and `anchor._append()`
+only ever appends a line whose `seq` is *higher* than the file's last entry — so a stale anchor left over from the old chain
+silently blocks every new anchor write with no error, and the rebuilt store ends up completely unanchored until someone notices
+`anchor status` reporting `ANCHOR_CHAIN_TRUNCATED`. Deleting both files together lets auto-anchoring rebuild itself cleanly during
+`load` (confirmed: after a rebuild, `anchor sync` reports nothing to do and `anchor status` reports a clean agreement).
+
+A rebuild also **resets every claim to `PENDING` and drops every admission receipt**; the old file's verification history does not
+carry over (rebuild from a backup, not the live file, if you need to keep it). Back up first if the current admitted state took real
+human review to reach — verification is a human act and has to be redone with `glossary verify --by human:NAME --note "..."` afterward.
 
 ## Updating the glossary
 
