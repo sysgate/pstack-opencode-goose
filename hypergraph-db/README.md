@@ -1,6 +1,6 @@
 # CHI hypergraph database (prototype store)
 
-`chi_hypergraph.PROTOTYPE.sqlite3` holds the CHI Platform glossary in the real hypergraph store: 75 terms, 139 avoid entries (136 distinct words),
+`chi_hypergraph.PROTOTYPE.sqlite3` holds the CHI Platform glossary in the real hypergraph store: 80 terms, 143 avoid entries (138 distinct words),
 238 semantic objects, 281 claims (hyperedges), each backed by the exact source text it came from. It is a **separate, rebuildable
 prototype file**, not the gateway's live audit ledger. Nothing here touches `chi-platform/infra/chi_agent_gateway/receipts/`.
 The file is gitignored (`*.sqlite3`); the Markdown glossaries stay authoritative and this file can always be rebuilt from them.
